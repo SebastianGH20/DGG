@@ -63,7 +63,7 @@ def handle_imbalance(X, y):
 
 def main():
     print("Loading data...")
-    df = pd.read_csv('data/dataset_limpio_unificado.csv')
+    df = pd.read_csv('data/mapped_dataset.csv')
     print(f"Loaded {len(df)} rows of data.")
 
     print("\nApplying improved genre mapping...")
