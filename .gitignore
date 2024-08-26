@@ -11,3 +11,4 @@ venv/
 models/
 models/*.npy
 data/
+.env
