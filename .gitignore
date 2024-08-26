@@ -1,0 +1,13 @@
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+*.csv
+*.h5
+*.npy
+models/
+models/*.npy
+data/
