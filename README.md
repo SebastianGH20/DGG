@@ -122,8 +122,7 @@ Class trance: 469.0
 Class trip-hop: 616.0
 
 # Define genre mapping
-Read in cluster.py
-
+Read in mapping.py
 
 23/08:
 New class distribution:
@@ -140,10 +139,6 @@ Class Ambient/Chill: 40295 (3.53%)
 Class Hip-Hop/R&B: 35962 (3.15%)
 Class Instrumental: 31050 (2.72%)
 Class Miscellaneous: 23425 (2.05%)
-
-Preparing features...
-
-Handling class imbalance...
 
 Final balanced class distribution:
 Class Country/Folk: 223029 (7.69%)
@@ -162,17 +157,4 @@ Class Latin: 223029 (7.69%)
 
 tried pipeline instead of just smote: remove kfold from model and try new balancing
 
-New class distribution:
-Class Electronic/Dance: 223029 (19.55%)
-Class Rock/Metal: 200013 (17.53%)
-Class World Music: 135633 (11.89%)
-Class Other: 125521 (11.00%)
-Class Country/Folk: 85076 (7.46%)
-Class Pop/Mainstream: 69195 (6.07%)
-Class Traditional: 68963 (6.05%)
-Class Reggae/Ska: 51349 (4.50%)
-Class Latin: 51169 (4.49%)
-Class Ambient/Chill: 40295 (3.53%)
-Class Hip-Hop/R&B: 35962 (3.15%)
-Class Instrumental: 31050 (2.72%)
-Class Miscellaneous: 23425 (2.05%)
+just obtained 6.25%

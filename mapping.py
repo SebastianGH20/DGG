@@ -53,7 +53,7 @@ def map_genres(genre, genre_mapping):
 
 def main():
     print("Loading data...")
-    df = pd.read_csv('dataset_limpio_unificado.csv')
+    df = pd.read_csv('data/dataset_limpio_unificado.csv')
     print(f"Loaded {len(df)} rows of data.")
 
     print("\nCreating genre mapping...")
