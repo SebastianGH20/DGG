@@ -12,16 +12,10 @@ The project consists of three main components:
 ## Setup
 
 1. Clone the repository
-2. Create a virtual environment: `python -m venv venv`
-3. Activate the virtual environment:
-   - On Windows: `venv\Scripts\activate`
-   - On macOS and Linux: `source venv/bin/activate`
-4. Install the required packages: `pip install -r requirements.txt`
-5. Place your dataset (`spotify_data.csv`) in the `data/` directory
-6. Run the preprocessing scripts:
+2. Run the preprocessing scripts:
    - `python mapping.py`
    - `python balancing.py`
-7. Run the model: `python genre_classification.py`
+3. Run the model: `python genre_classification.py`
 
 ## Project Structure
 
@@ -34,13 +28,11 @@ The project consists of three main components:
 - `tests/`: Unit tests (to be implemented)
 - `requirements.txt`: List of Python dependencies
 
-## Data Processing
-
 ### Genre Mapping
 
 The `mapping.py` script maps specific genres to broader categories, reducing the number of unique labels. Key features:
-- Creates a manageable set of genre labels
-- Outputs `mapped_dataset.csv` and `genre_mapping.csv`
+- Creates a manageable set of genre labels (13 genres)
+- Outputs `mapped_dataset.csv` dataset with all number unless the names of the genres, and `genre_mapping.csv` displaying the subgenres later joined in the unique labels.
 
 ### Data Preprocessing and Balancing
 
