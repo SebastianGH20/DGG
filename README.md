@@ -16,6 +16,7 @@ The project consists of three main components:
    - `python mapping.py`
    - `python balancing.py`
 3. Run the model: `python genre_classification.py`
+4. To run the visualization in local: `streamlit run main.py`
 
 ## Project Structure
 
