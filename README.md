@@ -58,16 +58,18 @@ The genre classification model is implemented in `genre_classification.py`. It u
 - EDA: Normalized features, consolidated genres, transformed categorical features
 - Early models: Achieved up to 30% accuracy
 - Improved mapping: Reduced to 13 genre categories
-- Final balanced dataset: 223,029 samples per class
+- Final balanced dataset: 1140681 rows
 - Current model performance: 83% accuracy 
 
 ## Future Work
 
-- Implement unit tests
-- Visualizaton
+- Visualizaton (eleccion de cancion y  artista parea calculo de genero y luego de prediccion)
 - Api call
 - Experiment with different model architectures
-- Feature engineering to improve model performance
+- connect api model and visualization
 
 
 
+# Presentación final
+
+El último día de clases, cada equipo presentará su proyecto final al resto de clase y a otras personas de 4Geeks Academy. Deben ser presentaciones enfocadas en el diseño, la tecnología y los retos y problemas superados, así que no tienes por qué preocuparte respecto a hacer una presentación con mucho protocolo. Muestra tu aplicación, explica lo que has hecho, qué cosas especiales has implementado y comparte la experiencia con el resto del curso.
