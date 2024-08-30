@@ -126,6 +126,22 @@ def get_track_collaborations(track_artists):
         collaborators.add(artist['name'])
     return collaborators
 
+def get_artist_collaborations_history(artist_id, limit=10):
+    """Fetch historical collaborations of the artist across tracks, limited to a number of examples."""
+    try:
+        top_tracks = sp.artist_top_tracks(artist_id)['tracks']
+        collaborations_history = []
+        
+        for track in top_tracks:
+            for artist in track['artists']:
+                if artist['id'] != artist_id and len(collaborations_history) < limit:
+                    collaborations_history.append(artist['name'])
+        
+        return collaborations_history[:limit]  # Limit to 10 collaborations
+    except Exception as e:
+        st.error(f"Error fetching historical collaborations: {str(e)}")
+        return []
+
 def main():
     st.title("Spotify Music Explorer")
 
@@ -200,21 +216,7 @@ def main():
                                         st.write(f"Popularity: {related_artist['popularity']}/100")
                             else:
                                 st.write("No related artists found.")
-
-                        # Genres of Related Artists Block
-                        with st.expander("Genres of Related Artists"):
-                            if related_artists and related_artists['artists']:
-                                related_genres = []
-                                for related_artist in related_artists['artists']:
-                                    artist_genres = sp.artist(related_artist['id'])['genres']
-                                    related_genres.extend(artist_genres)
-                                st.write(', '.join(set(related_genres)) if related_genres else "No genres found for related artists.")
-                            else:
-                                st.write("No related artists to show genres for.")
-
-                else:
-                    typewriter_text("Hmm, I couldn't find any artists with that name. Let's try a different search!")
-
+                
             else:
                 # Handling track search
                 tracks = results['tracks']['items']
@@ -238,12 +240,20 @@ def main():
                     
                     # Collaborations Block for Track
                     with st.expander("Collaborations"):
-                        collaborations = get_track_collaborations(track['artists'])
-                        if collaborations:
-                            st.write(', '.join(collaborations))
+                        # Current track collaborators
+                        current_collaborations = get_track_collaborations(track['artists'])
+                        if current_collaborations:
+                            st.write("Collaborators on this track: " + ', '.join(current_collaborations))
                         else:
-                            st.write("No collaborations found.")
+                            st.write("No collaborators found for this track.")
 
+                        # Historical collaborations
+                        artist_collaborations_history = get_artist_collaborations_history(artist_info['id'], limit=10)
+                        if artist_collaborations_history:
+                            st.write("Other collaborations: " + ', '.join(artist_collaborations_history))
+                        else:
+                            st.write("No other collaborations found.")
+                    
                     # Related Artists Block for Track's Artist
                     with st.expander("Related Artists"):
                         related_artists = sp.artist_related_artists(artist_info['id'])
