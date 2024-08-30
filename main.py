@@ -47,6 +47,9 @@ st.markdown("""
         font-size: 14px;
         margin-bottom: 5px;
     }
+    .artist-photo {
+        border-radius: 50%;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -57,7 +60,7 @@ def typewriter_text(text, speed=0.05):
         container.markdown(displayed_text, unsafe_allow_html=True)
         time.sleep(speed)
 
-def search_spotify(query, type='track,artist'):
+def search_spotify(query, type='track'):
     try:
         result = sp.search(q=query, type=type, limit=10)
         return result
@@ -150,142 +153,101 @@ def main():
         st.session_state.stage = 'intro'
     if 'query' not in st.session_state:
         st.session_state.query = ''
-    if 'search_type' not in st.session_state:
-        st.session_state.search_type = 'Artist'
     
     if st.session_state.stage == 'intro':
-        typewriter_text("Welcome to Spotify Music Explorer! Here you can discover detailed information about artists and tracks.")
+        typewriter_text("Welcome to Spotify Music Explorer! Here you can discover detailed information about tracks.")
         time.sleep(1)
-        typewriter_text("Let's start by searching for an artist or a track.")
+        typewriter_text("Let's start by searching for a track.")
         time.sleep(1)
         st.session_state.stage = 'input'
 
     if st.session_state.stage == 'input':
-        query = st.text_input("Enter an artist or song name:", value=st.session_state.query, key="search_query")
-        search_type = st.radio("Search for:", ("Artist", "Track"), index=["Artist", "Track"].index(st.session_state.search_type))
+        query = st.text_input("Enter a track name:", value=st.session_state.query, key="search_query")
 
+        # Search button to trigger the search
         if st.button("Search"):
             if query:
                 st.session_state.query = query
-                st.session_state.search_type = search_type
                 st.session_state.stage = 'search'
+                st.query_params = {"query": query}  # Update the query params
+                st.session_state.search_results = None  # Clear previous results
 
     if st.session_state.stage == 'search':
         typewriter_text("Searching the vast world of music... 🎵")
         with st.spinner("Fetching results from Spotify..."):
-            results = search_spotify(st.session_state.query, type=st.session_state.search_type.lower())
+            results = search_spotify(st.session_state.query, type='track')
             
         if results:
             typewriter_text("Great! Here's what I found for you:")
             
-            if st.session_state.search_type == "Artist":
-                artists = results['artists']['items']
-                if artists:
-                    artist = artists[0]  # Get the first artist
-                    artist_info, top_tracks, related_artists = get_artist_profile(artist['id'])
-                    
+            # Handling track search
+            tracks = results['tracks']['items']
+            if tracks:
+                track = tracks[0]  # Get the first track
+                artist_info = sp.artist(track['artists'][0]['id'])
+                track_info = get_track_features(track['id'])
+
+                # Track Information Block
+                col1, col2 = st.columns([1, 2])
+                with col1:
+                    st.image(track['album']['images'][0]['url'] if track['album']['images'] else None, width=200)
+                    st.audio(track['preview_url'])
+                with col2:
+                    st.subheader(f"🎵 {track['name']} by {track['artists'][0]['name']}")
                     if artist_info:
-                        # Artist Information Block
-                        col1, col2 = st.columns([1, 2])
-                        with col1:
-                            st.image(artist_info['images'][0]['url'] if artist_info['images'] else None, width=200)
-                        with col2:
-                            st.subheader(f"🎤 {artist_info['name']}")
-                            st.write(f"Genres: {', '.join(artist_info['genres'])}")
-                            st.write(f"🎉 Popularity: {artist_info['popularity']}/100")
-                            st.write(f"👥 Followers: {artist_info['followers']['total']:,}")
+                        st.write(f"Genres: {', '.join(artist_info['genres'])}")
+                        st.write(f"🎉 Popularity: {artist_info['popularity']}/100")
+                    if track_info:
+                        display_info(track_info)
+                
+                # Collaborations Block for Track
+                with st.expander("Collaborations"):
+                    # Current track collaborators
+                    current_collaborations = get_track_collaborations(track['artists'])
+                    if current_collaborations:
+                        st.write("Collaborators on this track: " + ', '.join(current_collaborations))
+                    else:
+                        st.write("No collaborators found for this track.")
 
-                        # Collaborations Block
-                        with st.expander("Collaborations"):
-                            collaborations = get_artist_collaborations(artist['id'])
-                            if collaborations:
-                                st.write(', '.join(collaborations))
-                            else:
-                                st.write("No collaborations found.")
+                    # Historical collaborations
+                    artist_collaborations_history = get_artist_collaborations_history(track['artists'][0]['id'])
+                    if artist_collaborations_history:
+                        st.write("Examples of other collaborations by this artist: " + ', '.join(artist_collaborations_history))
+                    else:
+                        st.write("No historical collaborations found.")
 
-                        # Related Artists Block
-                        with st.expander("Related Artists"):
-                            if related_artists and related_artists['artists']:
-                                for related_artist in related_artists['artists']:
-                                    col1, col2 = st.columns([1, 2])
-                                    with col1:
-                                        st.image(related_artist['images'][0]['url'] if related_artist['images'] else None, width=100)
-                                    with col2:
-                                        st.write(f"🎤 {related_artist['name']}")
-                                        st.write(f"Genres: {', '.join(related_artist['genres'])}")
-                                        st.write(f"Popularity: {related_artist['popularity']}/100")
-                            else:
-                                st.write("No related artists found.")
+                # Related Artists Block for Track's Artist
+                with st.expander("Related Artists"):
+                    related_artists = sp.artist_related_artists(track['artists'][0]['id'])
+                    if related_artists and related_artists['artists']:
+                        for artist in related_artists['artists']:
+                            col1, col2 = st.columns([1, 2])
+                            with col1:
+                                st.image(artist['images'][0]['url'] if artist['images'] else None, width=100, caption=artist['name'])
+                            with col2:
+                                st.write(f"**Name:** {artist['name']}")
+                                st.write(f"**Genres:** {', '.join(artist['genres'])}")
+                    else:
+                        st.write("No related artists found.")
+
+                # Genres of Related Artists Block
+                with st.expander("Genres of Related Artists"):
+                    if related_artists and related_artists['artists']:
+                        related_genres = []
+                        for related_artist in related_artists['artists']:
+                            artist_genres = sp.artist(related_artist['id'])['genres']
+                            related_genres.extend(artist_genres)
+                        st.write(', '.join(set(related_genres)) if related_genres else "No genres found for related artists.")
+                    else:
+                        st.write("No related artists to show genres for.")
                 
             else:
-                # Handling track search
-                tracks = results['tracks']['items']
-                if tracks:
-                    track = tracks[0]  # Get the first track
-                    artist_info = sp.artist(track['artists'][0]['id'])
-                    track_info = get_track_features(track['id'])
-
-                    # Track Information Block
-                    col1, col2 = st.columns([1, 2])
-                    with col1:
-                        st.image(track['album']['images'][0]['url'] if track['album']['images'] else None, width=200)
-                        st.audio(track['preview_url'])
-                    with col2:
-                        st.subheader(f"🎵 {track['name']} by {track['artists'][0]['name']}")
-                        if artist_info:
-                            st.write(f"Genres: {', '.join(artist_info['genres'])}")
-                            st.write(f"🎉 Popularity: {artist_info['popularity']}/100")
-                        if track_info:
-                            display_info(track_info)
-                    
-                    # Collaborations Block for Track
-                    with st.expander("Collaborations"):
-                        # Current track collaborators
-                        current_collaborations = get_track_collaborations(track['artists'])
-                        if current_collaborations:
-                            st.write("Collaborators on this track: " + ', '.join(current_collaborations))
-                        else:
-                            st.write("No collaborators found for this track.")
-
-                        # Historical collaborations
-                        artist_collaborations_history = get_artist_collaborations_history(artist_info['id'], limit=10)
-                        if artist_collaborations_history:
-                            st.write("Other collaborations: " + ', '.join(artist_collaborations_history))
-                        else:
-                            st.write("No other collaborations found.")
-                    
-                    # Related Artists Block for Track's Artist
-                    with st.expander("Related Artists"):
-                        related_artists = sp.artist_related_artists(artist_info['id'])
-                        if related_artists and related_artists['artists']:
-                            for related_artist in related_artists['artists']:
-                                col1, col2 = st.columns([1, 2])
-                                with col1:
-                                    st.image(related_artist['images'][0]['url'] if related_artist['images'] else None, width=100)
-                                with col2:
-                                    st.write(f"🎤 {related_artist['name']}")
-                                    st.write(f"Genres: {', '.join(related_artist['genres'])}")
-                                    st.write(f"Popularity: {related_artist['popularity']}/100")
-                        else:
-                            st.write("No related artists found.")
-
-                    # Genres of Related Artists Block for Track's Artist
-                    with st.expander("Genres of Related Artists"):
-                        related_artists = sp.artist_related_artists(artist_info['id'])
-                        if related_artists and related_artists['artists']:
-                            related_genres = []
-                            for related_artist in related_artists['artists']:
-                                artist_genres = sp.artist(related_artist['id'])['genres']
-                                related_genres.extend(artist_genres)
-                            st.write(', '.join(set(related_genres)) if related_genres else "No genres found for related artists.")
-                        else:
-                            st.write("No related artists to show genres for.")
-                    
-                else:
-                    typewriter_text("Oops! I couldn't find any tracks matching your search. Let's try something else!")
+                typewriter_text("Oops! I couldn't find any tracks matching your search. Let's try something else!")
 
         if st.button("Return to Search"):
             st.session_state.stage = 'input'
+            st.session_state.query = ''  # Clear the query for a new search
+            st.query_params = {"query": ''}  # Reset the query params
 
 if __name__ == "__main__":
     main()
