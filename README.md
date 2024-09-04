@@ -1,6 +1,11 @@
 # Music Genre Classification Project
 
-This project implements a deep learning model to classify music genres based on various audio features extracted from Spotify data.
+This project implements a deep learning model to classify and predcit music stats based on various audio features extracted from Spotify data.
+
+# Members
+ - Sebastian
+ - Pablo García del Moral
+
 
 ## Project Overview
 
@@ -68,8 +73,54 @@ The genre classification model is implemented in `genre_classification.py`. It u
 - Experiment with different model architectures
 - connect api model and visualization
 
+# Things we tried
 
+  relu elu, distinta cantidad de neuronas, Feature scaling, distintos modelos a la vez que la red neuronal,
+  k-fold no hemos probado por que tarda mucho, cambiado epoch y batch size tambien,
+  callbacks=[early_stopping, reduce_lr, LoggingCallback()] 
+  intentamos con convolucionales por una recomendacion. ReduceLROnPlateau
+  cambiado el optimizados y las capas 
 
 # Presentación final
 
 El último día de clases, cada equipo presentará su proyecto final al resto de clase y a otras personas de 4Geeks Academy. Deben ser presentaciones enfocadas en el diseño, la tecnología y los retos y problemas superados, así que no tienes por qué preocuparte respecto a hacer una presentación con mucho protocolo. Muestra tu aplicación, explica lo que has hecho, qué cosas especiales has implementado y comparte la experiencia con el resto del curso.
+
+
+
+
+Training Progress with Adam Optimizer:
+
+  Your model was trained for 50 epochs using the Adam optimizer.
+  The training completed successfully with the following results:
+  Validation Loss: 0.4656
+  Validation Accuracy: 82.64%
+  The classification report shows reasonably good precision, recall, and F1-score values for most classes, suggesting the model performs well.
+
+
+Training Metrics adamw
+
+  Epochs: 50
+  Final Training Loss: 0.5095
+  Final Training Accuracy: 81.27%
+  Final Validation Loss: 0.4654
+  Final Validation Accuracy: 82.61%
+  Training Time: 1037.71 seconds (approximately 17 minutes)
+  
+
+Training Metrics with SGD
+
+  Epochs: 50
+  Final Training Loss: 0.5365
+  Final Training Accuracy: 80.36%
+  Final Validation Loss: 0.4888
+  Final Validation Accuracy: 81.79%
+  Training Time: 1026.19 seconds (approximately 17 minutes) 
+  
+Training Metrics  rmsprop
+
+  Epochs: 50
+  Final Training Loss: 0.5140
+  Final Training Accuracy: 81.16%
+  Final Validation Loss: 0.4689
+  Final Validation Accuracy: 82.52%
+  Training Time: 973.78 seconds (approximately 16 minutes)

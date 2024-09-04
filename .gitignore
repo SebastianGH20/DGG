@@ -7,8 +7,10 @@ env/
 venv/
 *.csv
 *.h5
+*.joblib
 *.npy
 models/
 models/*.npy
 data/
 .env
+*.pkl
