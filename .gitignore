@@ -14,3 +14,5 @@ models/*.npy
 data/
 .env
 *.pkl
+scaler.pkl
+keras_tuner/

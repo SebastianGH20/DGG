@@ -9,6 +9,7 @@ from tensorflow.keras.models import load_model
 import joblib
 from collections import Counter
 import datetime
+import pandas as pd
 
 # Set page config at the very beginning
 st.set_page_config(page_title="Spotify Music Explorer", page_icon="🎵", layout="wide")
@@ -206,14 +207,19 @@ def get_artist_collaborations_history(artist_id, limit=10):
     except Exception as e:
         st.error(f"Error fetching historical collaborations: {str(e)}")
         return []
+def preprocess_for_prediction(features):
+    feature_names = ['popularity', 'danceability', 'energy', 'key', 'loudness', 'mode', 
+                     'speechiness', 'acousticness', 'instrumentalness', 'liveness', 
+                     'valence', 'tempo', 'duration_ms', 'time_signature']
 
-def predict_genre(features):
-    feature_names = ['danceability', 'energy', 'key', 'loudness', 'mode', 'speechiness', 
-                     'acousticness', 'instrumentalness', 'liveness', 'valence', 'tempo']
-    
     feature_values = []
     for name in feature_names:
-        value = features.get(name, (0, ''))[0]
+        if name == 'duration_ms':
+            minutes, seconds = map(int, features.get('duration', (0, ''))[0].split(':'))
+            value = (minutes * 60 + seconds) * 1000
+        else:
+            value = features.get(name, (0, ''))[0]
+        
         if name == 'mode':
             value = 1 if value == 'Major' else 0
         elif isinstance(value, str):
@@ -223,20 +229,46 @@ def predict_genre(features):
                 value = 0
         feature_values.append(value)
     
-    if not feature_values:
-        return "Unknown", "Unknown", []
+    X = pd.DataFrame([feature_values], columns=feature_names)
+    
+    # Add a dummy 'unified_genre' column
+    X['unified_genre'] = 'unknown'
+    
+    return X
 
-    X = np.array(feature_values).reshape(1, -1)
+def predict_genre(features):
+    feature_names = ['popularity', 'danceability', 'energy', 'key', 'loudness', 'mode', 
+                     'speechiness', 'acousticness', 'instrumentalness', 'liveness', 
+                     'valence', 'tempo', 'duration_ms', 'time_signature']
+
+    feature_values = []
+    for name in feature_names:
+        if name == 'duration_ms':
+            # Convert duration from "minutes:seconds" to milliseconds
+            minutes, seconds = map(int, features.get('duration', (0, ''))[0].split(':'))
+            value = (minutes * 60 + seconds) * 1000
+        else:
+            value = features.get(name, (0, ''))[0]
+        
+        if name == 'mode':
+            value = 1 if value == 'Major' else 0
+        elif isinstance(value, str):
+            try:
+                value = float(value)
+            except ValueError:
+                value = 0
+        feature_values.append(value)
     
-    # Pad the input to match the expected 30 features
-    if scaler.n_features_in_ > X.shape[1]:
-        padding = np.zeros((X.shape[0], scaler.n_features_in_ - X.shape[1]))
-        X_padded = np.hstack((X, padding))
-        X_scaled = scaler.transform(X_padded)
-    else:
-        X_scaled = scaler.transform(X)
+    # Convert to DataFrame
+    X = pd.DataFrame([feature_values], columns=feature_names)
     
-    prediction_probs = model.predict(X_scaled)[0]
+    # Add a dummy 'unified_genre' column
+    X['unified_genre'] = 'unknown'
+    
+    # Apply the ColumnTransformer (scaler)
+    X_transformed = scaler.transform(X)
+    
+    prediction_probs = model.predict(X_transformed)[0]
     
     # Get unique mapped genres (values in genre_mapping)
     unique_mapped_genres = list(set(genre_mapping.values()))
