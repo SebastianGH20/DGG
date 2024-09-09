@@ -1,57 +1,86 @@
-import numpy as np
 import pandas as pd
+import tensorflow as tf
 import joblib
-from tensorflow.keras.models import load_model
 
-# Load the preprocessor, model, and label encoder
+# Load the saved components
+model = tf.keras.models.load_model('genre_classification_model.keras')
 preprocessor = joblib.load('preprocessor.pkl')
-model = load_model('genre_classification_model.h5')
-le = joblib.load('label_encoder.pkl')
+label_encoder = joblib.load('label_encoder.pkl')
 
-# Create a mock input based on the provided data format
-mock_input = pd.DataFrame({
-    'popularity': [1.92734283362299],
-    'danceability': [0.7239985210752148],
-    'energy': [-0.3610706960996316],
-    'key': [1.6067250937743145],
-    'loudness': [0.2598200649954539],
-    'mode': [-1.3180006869059344],
-    'speechiness': [-0.2547662305200814],
-    'acousticness': [-0.8711217725023787],
+# Example row data for prediction
+new_data = pd.DataFrame({
+    'popularity': [-0.1500183890296356],
+    'danceability': [0.7587249459994932],
+    'energy': [-0.9229914740719376],
+    'key': [0.1760498788336178],
+    'loudness': [-1.487338336122037],
+    'mode': [0.7587249459994932],
+    'speechiness': [-0.5196650955565505],
+    'acousticness': [0.7787975199589121],
     'instrumentalness': [-0.6729309951206706],
-    'liveness': [-0.487484820308363],
-    'valence': [0.642176121578385],
-    'tempo': [-0.9507517871299962],
-    'duration_ms': [-0.2164065126616003],
-    'time_signature': [0.2440057437544111],
-    'unified_genre': ['rock']  # Updated unified genre
+    'liveness': [-0.5521387225194017],
+    'valence': [-1.1193388400001902],
+    'tempo': [-2.2871974824435],
+    'duration_ms': [0.1030490574668306],  # Adjust as needed
+    'time_signature': [0.2440057437544111],  # Adjust as needed
+    'unified_genre': ['folk']
 })
 
-# Ensure 'unified_genre' is handled correctly
-mock_input['unified_genre'] = mock_input['unified_genre'].astype(str)  # Convert to string type
+# # Example row data for prediction
+# new_data = pd.DataFrame({
+#     'popularity': [2.1791441939445204],
+#     'danceability': [1.2026956794417198],
+#     'energy': [-0.2517278088706602],
+#     'key': [1.0441681065204325],
+#     'loudness': [0.9861216580414566],
+#     'mode': [-1.3180006869059344],
+#     'speechiness': [-0.1964254090537162],
+#     'acousticness': [-0.8719668737278155],
+#     'instrumentalness': [-0.6906370464482766],
+#     'liveness': [-0.6341994445564892],
+#     'valence': [0.3144524077963246],
+#     'tempo': [-0.950415988317133],
+#     'duration_ms': [0.315950284082433],  # Adjust as needed
+#     'time_signature': [0.2440057437544111],  # Adjust as needed
+#     'unified_genre': ['metal']
+# })
 
-# Transform using the preprocessor
-X_preprocessed = preprocessor.transform(mock_input)
+# # Example row data for prediction
+# new_data = pd.DataFrame({
+#     'popularity': [0.0388326312115121],
+#     'danceability': [0.7442866237274701],
+#     'energy': [-1.3304474736441552],
+#     'key': [0.8972478260840465],
+#     'loudness': [-0.6435028552412139],
+#     'mode': [0.7587249459994932],
+#     'speechiness': [-0.395099557831068],
+#     'acousticness': [-0.9055776762650748],
+#     'instrumentalness': [-0.6912214228390922],
+#     'liveness': [1.7704283799848335],
+#     'valence': [1.267830484253228],
+#     'tempo': [-0.0829804949293986],
+#     'duration_ms': [0.871589492651685],  # Adjust as needed
+#     'time_signature': [0.2440057437544111],  # Adjust as needed
+#     'unified_genre': ['rock']
+# })
 
-# Verify the shape of the preprocessed input
-print("Shape of preprocessed input:", X_preprocessed.shape)
+# Preprocess the new data
+X_new = new_data.copy()  # Copy to avoid modifying original
+print(X_new)
 
-# Make sure it has the expected number of features
-if X_preprocessed.shape[1] != 30:
-    raise ValueError(f"Expected 30 features, but got {X_preprocessed.shape[1]}")
+# The preprocessor should handle the encoding of 'unified_genre'
+X_new_preprocessed = preprocessor.transform(X_new)
+print(X_new_preprocessed)
 
-# Make prediction
-prediction = model.predict(X_preprocessed)
-predicted_class_index = np.argmax(prediction, axis=1)
-predicted_genre = le.inverse_transform(predicted_class_index)[0]
+# Make predictions
+y_pred_probs = model.predict(X_new_preprocessed)
+y_pred_classes = y_pred_probs.argmax(axis=1)  # Get class indices
 
-# Print results
-print(f"Input unified genre: {mock_input['unified_genre'].iloc[0]}")
-print(f"Predicted genre: {predicted_genre}")
-print(f"Prediction probabilities: {prediction[0]}")
-print(f"Class names: {le.classes_}")
+# Convert class indices to class names
+y_pred_labels = label_encoder.inverse_transform(y_pred_classes)
 
-# Optional: Compare with the actual mapped genre (if available)
-actual_mapped_genre = "Rock/Metal"  # This is from the 'mapped_genre' column in your data
-print(f"Actual mapped genre: {actual_mapped_genre}")
-print(f"Prediction {'matches' if predicted_genre == actual_mapped_genre else 'does not match'} actual mapped genre.")
+# Display predictions
+predicted_genre = y_pred_labels[0]
+print(f"Predicted genre: '{predicted_genre}'")
+
+

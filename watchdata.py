@@ -1,158 +1,95 @@
-# import pandas as pd
-# import numpy as np
-# import joblib
-# from tensorflow.keras.models import load_model
-# import logging
-# import os
-# from sklearn import __version__ as sklearn_version
-
-# # Set up logging
-# logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-
-# # Suppress TensorFlow warnings
-# os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
-
-# def load_model_and_preprocessors():
-#     try:
-#         model = load_model('genre_classification_model.h5')
-#         preprocessor = joblib.load('preprocessor.pkl')
-#         label_encoder = joblib.load('label_encoder.pkl')
-#         return model, preprocessor, label_encoder
-#     except FileNotFoundError as e:
-#         logging.error(f"Error loading model or preprocessors: {e}")
-#         raise
-
-# def load_sample_data(file_path, sample_size=5):
-#     try:
-#         df = pd.read_csv(file_path, nrows=sample_size)
-#         return df
-#     except FileNotFoundError:
-#         logging.error(f"Data file not found: {file_path}")
-#         raise
-#     except pd.errors.EmptyDataError:
-#         logging.error(f"No data in file: {file_path}")
-#         raise
-
-# def get_feature_names(column_transformer):
-#     feature_names = []
-#     for name, pipe, features in column_transformer.transformers_:
-#         if name != 'remainder':
-#             if hasattr(pipe, 'get_feature_names_out'):
-#                 if isinstance(features, slice):
-#                     feature_names.extend(pipe.get_feature_names_out())
-#                 else:
-#                     feature_names.extend(pipe.get_feature_names_out(features))
-#             elif hasattr(pipe, 'get_feature_names'):
-#                 if isinstance(features, slice):
-#                     feature_names.extend(pipe.get_feature_names())
-#                 else:
-#                     feature_names.extend(pipe.get_feature_names(features))
-#             else:
-#                 feature_names.extend(features)
-#     return feature_names
-
-# def preprocess_data(df, preprocessor):
-#     X = df.drop(['genre', 'mapped_genre'], axis=1)
-#     X_processed = preprocessor.transform(X)
-    
-#     if hasattr(X_processed, 'toarray'):
-#         X_processed = X_processed.toarray()
-    
-#     feature_names = get_feature_names(preprocessor)
-    
-#     return pd.DataFrame(X_processed, columns=feature_names), X_processed
-
-# def predict_genre(model, X_processed, label_encoder):
-#     prediction = model.predict(X_processed[:1])
-#     predicted_class_index = prediction.argmax()
-#     predicted_genre = label_encoder.inverse_transform([predicted_class_index])[0]
-#     return predicted_genre, prediction[0]
-
-# def main():
-#     try:
-#         # Load model and preprocessors
-#         model, preprocessor, label_encoder = load_model_and_preprocessors()
-        
-#         # Load sample data
-#         df = load_sample_data('data/mapped_dataset.csv')
-        
-#         # Preprocess data
-#         processed_df, X_processed = preprocess_data(df, preprocessor)
-        
-#         # Print sample processed row
-#         logging.info("Sample processed row:")
-#         logging.info(processed_df.iloc[0])
-        
-#         # Print corresponding genre
-#         logging.info("\nCorresponding genre:")
-#         logging.info(df['mapped_genre'].iloc[0])
-        
-#         # Get model prediction
-#         predicted_genre, prediction_probabilities = predict_genre(model, X_processed, label_encoder)
-        
-#         logging.info("\nModel prediction:")
-#         logging.info(f"Predicted genre: {predicted_genre}")
-#         logging.info(f"Prediction probabilities: {prediction_probabilities}")
-        
-#     except Exception as e:
-#         logging.error(f"An error occurred: {str(e)}")
-
-# if __name__ == "__main__":
-#     main()
-
 import pandas as pd
+import numpy as np
+import joblib
+import tensorflow as tf
+from sklearn.preprocessing import LabelEncoder, StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+import logging
 
-# Load your dataset
-# Replace 'your_dataset.csv' with the actual path to your dataset
-df = pd.read_csv('data/cleaned_mapped_dataset_final.csv')
+# Set up logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-# Get the number of unique unified genres
-num_unified_genres = df['unified_genre'].nunique()
-num_mapped_genres = df['mapped_genre'].nunique()
+# Suppress TensorFlow warnings
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+tf.get_logger().setLevel('ERROR')
 
-# Get the list of unique unified genres
-unique_unified_genres = df['unified_genre'].unique()
-unique_mapped_genres = df['mapped_genre'].unique()
-unique_mapped_genres = df['genre'].unique()
+# Load preprocessor and label encoder
+preprocessor = joblib.load('preprocessor.pkl')
+le = joblib.load('label_encoder.pkl')
 
-# Get the count of each unified genre
-unified_genre_counts = df['unified_genre'].value_counts()
-mapped_genre_counts = df['mapped_genre'].value_counts()
+# Load the model
+model = tf.keras.models.load_model('genre_classification_model.keras')
 
-print(f"Number of unique unified genres: {num_unified_genres}")
-print(f"Number of unique mapped genres: {num_mapped_genres}")
-print("\nList of unique unified genres:")
-print(unique_unified_genres)
-print("\nCount of each unified genre:")
-print(unified_genre_counts)
-print("\nList of unique mapped genres:")
-print(unique_mapped_genres)
-print("\nCount of each mapped genre:")
-print(mapped_genre_counts)
+# Print the feature names used during training
+def print_feature_names(preprocessor):
+    transformers = preprocessor.transformers_
+    feature_names = []
 
-# Optionally, you can save this information to a file
-with open('unified_genre_analysis.txt', 'w') as f:
-    f.write(f"Number of unique unified genres: {num_unified_genres}\n\n")
-    f.write("List of unique unified genres:\n")
-    f.write(str(unique_unified_genres) + "\n\n")
-    f.write("Count of each unified genre:\n")
-    f.write(str(unified_genre_counts))
+    for name, transformer, columns in transformers:
+        if isinstance(transformer, StandardScaler):
+            feature_names.extend(columns)
+        elif isinstance(transformer, OneHotEncoder):
+            feature_names.extend(transformer.get_feature_names_out(input_features=columns))
 
-print("\nAnalysis has been saved to 'unified_genre_analysis.txt'")
+    logging.info(f"Feature names used during training: {feature_names}")
+    return feature_names
 
+# Get the feature names
+feature_names = print_feature_names(preprocessor)
 
-# Function to get genres with 'other' unified genre
-def get_other_genres(df):
-    other_mask = df['unified_genre'] == 'other'
-    other_genres = df.loc[other_mask, 'genre'].unique()
-    return sorted(other_genres)
+# Create mock input DataFrame
+mock_input = pd.DataFrame({
+    'popularity': [1.92734283362299],
+    'danceability': [0.7239985210752148],
+    'energy': [-0.3610706960996316],
+    'key': [1.6067250937743145],
+    'loudness': [0.2598200649954539],
+    'mode': [-1.3180006869059344],
+    'speechiness': [-0.2547662305200814],
+    'acousticness': [-0.8711217725023787],
+    'instrumentalness': [-0.6729309951206706],
+    'liveness': [-0.487484820308363],
+    'valence': [0.642176121578385],
+    'tempo': [-0.9507517871299962],
+    'duration_ms': [-0.2164065126616003],
+    'time_signature': [0.2440057437544111],
+    'unified_genre': ['rock']
+})
 
-# Get the list of genres mapped to 'other'
-other_genres = get_other_genres(df)
+# Map genres
+genre_mapping = create_improved_genre_mapping()
+mock_input['mapped_genre'] = mock_input['unified_genre'].map(genre_mapping).fillna('Other')
 
-print("Genres mapped to 'other' unified genre:")
-for genre in other_genres:
-    print(f"- {genre}")
+# Separate features
+X_mock = mock_input.drop(['unified_genre', 'mapped_genre'], axis=1)
 
-# Count of each genre mapped to 'other'
-other_genre_counts = df[df['unified_genre'] == 'other']['genre'].value_counts()
+# Ensure the order of columns matches what the model expects
+# Add missing columns with default values (e.g., zeros)
+for col in feature_names:
+    if col not in X_mock.columns:
+        if 'unified_genre_' in col:
+            X_mock[col] = 0  # Add missing one-hot encoded columns
+        else:
+            X_mock[col] = 0  # Add missing numeric columns
+
+# Reorder columns to match feature_names
+X_mock = X_mock[feature_names]
+
+# Transform the features
+try:
+    X_mock_preprocessed = preprocessor.transform(X_mock)
+except ValueError as e:
+    logging.error(f"Error during preprocessing: {e}")
+    raise
+
+# Make predictions
+y_pred = model.predict(X_mock_preprocessed)
+y_pred_classes = np.argmax(y_pred, axis=1)
+
+# Decode the predictions
+predicted_genre = le.inverse_transform(y_pred_classes)
+
+# Combine predictions with the original data
+mock_input['predicted_genre'] = predicted_genre
+print(mock_input[['unified_genre', 'predicted_genre']])

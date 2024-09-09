@@ -6,6 +6,7 @@ from spotipy.oauth2 import SpotifyClientCredentials
 import time
 import numpy as np
 import pandas as pd
+import tensorflow as tf
 from tensorflow.keras.models import load_model
 import joblib
 from collections import Counter
@@ -252,10 +253,66 @@ def search_spotify(query, type='track'):
         st.error(f"Error searching Spotify: {str(e)}")
         return None
 
+def create_reverse_mapping(genre_unified_mapping):
+    reverse_mapping = {}
+    for subgenre, unified in genre_unified_mapping.items():
+        if unified not in reverse_mapping:
+            reverse_mapping[unified] = set()
+        reverse_mapping[unified].add(subgenre)
+    return reverse_mapping
+
+reverse_genre_mapping = create_reverse_mapping(genre_unified_mapping)
+
+def get_unified_genre(spotify_genres):
+    print(f"Spotify genres: {spotify_genres}")
+    for genre in spotify_genres:
+        genre_lower = genre.lower()
+        print(f"Checking genre: {genre_lower}")
+        
+        # Check for exact matches
+        if genre_lower in genre_unified_mapping:
+            unified = genre_unified_mapping[genre_lower]
+            print(f"Exact match found: {genre_lower} -> {unified}")
+            return unified
+        
+        # Check for partial matches
+        for key, value in genre_unified_mapping.items():
+            if key in genre_lower:
+                print(f"Partial match found: {genre_lower} contains {key} -> {value}")
+                return value
+        
+        # Additional check for 'rock' specifically
+        if 'rock' in genre_lower:
+            print(f"'rock' found in {genre_lower}, mapping to 'rock'")
+            return 'rock'
+    
+    print("No match found, returning 'other'")
+    return 'other'
+
+# # Print out the entire genre_unified_mapping for debugging
+# print("\nFull genre_unified_mapping:")
+# for key, value in genre_unified_mapping.items():
+#     print(f"{key}: {value}")
+
+# # Test the function
+# test_genres = ['australian rock', 'hard rock', 'rock']
+# result = get_unified_genre(test_genres)
+# print(f"Final result: {result}")
+
+
 def get_track_features(track_id):
     try:
         features = sp.audio_features(track_id)[0]
         track_info = sp.track(track_id)
+        
+        artist_id = track_info['artists'][0]['id']
+        artist_info = sp.artist(artist_id)
+        
+        spotify_genres = artist_info['genres']
+        print(f"Artist genres from Spotify: {spotify_genres}")
+        
+        unified_genre = get_unified_genre(spotify_genres)
+        print(f"Unified genre: {unified_genre}")
         
         combined_info = {
             'popularity': (track_info['popularity'], '🎉'),
@@ -271,13 +328,172 @@ def get_track_features(track_id):
             'valence': (features['valence'], '😊'),
             'tempo': (round(features['tempo'], 2), '🏃'),
             'duration': (f"{features['duration_ms'] // 60000}:{(features['duration_ms'] % 60000 // 1000):02d}", '⏱️'),
-            'time_signature': (features['time_signature'], '📝')
+            'time_signature': (features['time_signature'], '📝'),
+            'unified_genre': (unified_genre, '🔠')
         }
+        print(f"Combined info: {combined_info}")
         return combined_info
     
     except Exception as e:
         st.error(f"Error getting track features: {str(e)}")
         return None
+
+def predict_genre(features):
+    print(f"Input features for prediction: {features}")
+    feature_names = ['popularity', 'danceability', 'energy', 'key', 'loudness', 'mode', 
+                     'speechiness', 'acousticness', 'instrumentalness', 'liveness', 
+                     'valence', 'tempo', 'duration_ms', 'time_signature', 'unified_genre']
+
+    feature_values = []
+    for name in feature_names:
+        if name == 'duration_ms':
+            minutes, seconds = map(int, features.get('duration', (0, ''))[0].split(':'))
+            value = (minutes * 60 + seconds) * 1000
+        elif name == 'unified_genre':
+            value = features.get(name, ('other', ''))[0]
+        else:
+            value = features.get(name, (0, ''))[0]
+        
+        if name == 'mode':
+            value = 1 if value == 'Major' else 0
+        elif isinstance(value, str) and name != 'unified_genre':
+            try:
+                value = float(value)
+            except ValueError:
+                value = 0
+        feature_values.append(value)
+    
+    print(f"Processed feature values: {feature_values}")
+    X = pd.DataFrame([feature_values], columns=feature_names)
+    print(f"DataFrame for prediction:\n{X}")
+    
+    # Apply the preprocessor
+    X_preprocessed = preprocessor.transform(X)
+    print(f"Preprocessed X shape: {X_preprocessed.shape}")
+    print(f"Preprocessed X first few columns: {X_preprocessed[0, :5]}")
+    
+    # Get model information
+    print("Model summary:")
+    model.summary()
+    
+    print("\nModel layer information:")
+    for i, layer in enumerate(model.layers):
+        print(f"Layer {i} - {layer.name}:")
+        print(f"  Type: {type(layer).__name__}")
+        print(f"  Config: {layer.get_config()}")
+        if hasattr(layer, 'output_shape'):
+            print(f"  Output shape: {layer.output_shape}")
+        if hasattr(layer, 'units'):
+            print(f"  Units: {layer.units}")
+        print()
+    
+    # Try to determine the expected input dimension
+    expected_input_dim = None
+    if hasattr(model, 'input_shape'):
+        expected_input_dim = model.input_shape[-1]
+    elif hasattr(model.layers[0], 'input_dim'):
+        expected_input_dim = model.layers[0].input_dim
+    
+    print(f"Expected input dimension: {expected_input_dim}")
+    print(f"Preprocessed X dimension: {X_preprocessed.shape[1]}")
+    
+    if expected_input_dim is not None and X_preprocessed.shape[1] != expected_input_dim:
+        print(f"WARNING: Preprocessed data shape ({X_preprocessed.shape[1]}) does not match model's expected input dimension ({expected_input_dim})")
+
+    try:
+        print(X_preprocessed)
+        prediction_probs = model.predict(X_preprocessed)[0]
+        print(f"Raw prediction probabilities: {prediction_probs}")
+    except Exception as e:
+        print(f"Error during prediction: {str(e)}")
+        return "Error", "Error", []
+    
+    # Get unique genres from label encoder
+    unique_genres = le.classes_
+    print(f"Unique genres from label encoder: {unique_genres}")
+    
+    # Sort predictions by probability
+    sorted_predictions = sorted(zip(unique_genres, prediction_probs), key=lambda x: x[1], reverse=True)
+    print(f"Sorted predictions: {sorted_predictions}")
+    
+    # Get top 3 predictions
+    top_predictions = sorted_predictions[:3]
+    
+    # If the highest probability is below a threshold, return "Unknown"
+    if top_predictions[0][1] < 0.4:  # You can adjust this threshold
+        print("Highest probability below threshold, returning Unknown")
+        return "Unknown", "Unknown", top_predictions
+    
+    predicted_category = top_predictions[0][0]
+    print(f"Final predicted category: {predicted_category}")
+    
+    return predicted_category, predicted_category, top_predictions
+
+# Add this to check the preprocessor and label encoder
+print("Preprocessor feature names:")
+print(preprocessor.get_feature_names_out())
+print("\nLabel Encoder classes:")
+print(le.classes_)
+
+# Debugging Steps for Genre Classification Model
+
+# 1. Verify Input Data
+def verify_input_data(track_features):
+    expected_features = [
+        'popularity', 'danceability', 'energy', 'key', 'loudness', 'mode',
+        'speechiness', 'acousticness', 'instrumentalness', 'liveness',
+        'valence', 'tempo', 'duration_ms', 'time_signature'
+    ]
+    for feature in expected_features:
+        if feature not in track_features:
+            print(f"Missing feature: {feature}")
+    
+    # Check for any unexpected features
+    for feature in track_features:
+        if feature not in expected_features:
+            print(f"Unexpected feature: {feature}")
+
+# 2. Preprocess Input Data
+def preprocess_input(track_features, preprocessor):
+    # Convert dictionary to DataFrame
+    input_df = pd.DataFrame([track_features])
+    
+    # Apply the same preprocessing as during training
+    preprocessed_input = preprocessor.transform(input_df)
+    
+    return preprocessed_input
+
+# 3. Examine Model Predictions
+def examine_predictions(model, preprocessed_input, label_encoder):
+    # Get raw predictions
+    raw_predictions = model.predict(preprocessed_input)
+    
+    # Get top 3 predictions
+    top_3_indices = np.argsort(raw_predictions[0])[-3:][::-1]
+    top_3_genres = label_encoder.inverse_transform(top_3_indices)
+    top_3_probs = raw_predictions[0][top_3_indices]
+    
+    for genre, prob in zip(top_3_genres, top_3_probs):
+        print(f"{genre}: {prob*100:.2f}%")
+
+# 4. Main Debugging Function
+def debug_genre_classification(track_features):
+    # Load the saved model and preprocessor
+    model = tf.keras.models.load_model('genre_classification_model.keras')
+    preprocessor = joblib.load('preprocessor.pkl')
+    label_encoder = joblib.load('label_encoder.pkl')
+    
+    # Step 1: Verify input data
+    verify_input_data(track_features)
+    
+    # Step 2: Preprocess input data
+    preprocessed_input = preprocess_input(track_features, preprocessor)
+    
+    # Step 3: Examine model predictions
+    examine_predictions(model, preprocessed_input, label_encoder)
+
+# Usage
+# debug_genre_classification(your_track_features)
 
 def display_info(info):
     for key, (value, icon) in info.items():
@@ -331,60 +547,6 @@ def preprocess_for_prediction(features):
     X['unified_genre'] = 'unknown'
     
     return X
-
-def predict_genre(features):
-    feature_names = ['popularity', 'danceability', 'energy', 'key', 'loudness', 'mode', 
-                     'speechiness', 'acousticness', 'instrumentalness', 'liveness', 
-                     'valence', 'tempo', 'duration_ms', 'time_signature']
-
-    feature_values = []
-    for name in feature_names:
-        if name == 'duration_ms':
-            minutes, seconds = map(int, features.get('duration', (0, ''))[0].split(':'))
-            value = (minutes * 60 + seconds) * 1000
-        else:
-            value = features.get(name, (0, ''))[0]
-        
-        if name == 'mode':
-            value = 1 if value == 'Major' else 0
-        elif isinstance(value, str):
-            try:
-                value = float(value)
-            except ValueError:
-                value = 0
-        feature_values.append(value)
-    
-    X = pd.DataFrame([feature_values], columns=feature_names)
-    
-    # Add a dummy 'unified_genre' column
-    X['unified_genre'] = 'unknown'
-    
-    # Apply the preprocessor
-    X_preprocessed = preprocessor.transform(X)
-    
-    prediction_probs = model.predict(X_preprocessed)[0]
-    
-    # Get unique genres from label encoder
-    unique_genres = le.classes_
-    
-    # Sort predictions by probability
-    sorted_predictions = sorted(zip(unique_genres, prediction_probs), key=lambda x: x[1], reverse=True)
-    
-    # Get top 3 predictions
-    top_predictions = sorted_predictions[:3]
-    
-    # If the highest probability is below a threshold, return "Unknown"
-    if top_predictions[0][1] < 0.4:  # You can adjust this threshold
-        return "Unknown", "Unknown", top_predictions
-    
-    predicted_category = top_predictions[0][0]
-    
-    # Find a corresponding subgenre
-    for subgenre, mapped_genre in genre_mapping.items():
-        if mapped_genre == predicted_category:
-            return subgenre, predicted_category, top_predictions
-    
-    return predicted_category, predicted_category, top_predictions
 
 def get_decade(release_date):
     try:

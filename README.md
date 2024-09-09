@@ -124,3 +124,16 @@ Training Metrics  rmsprop
   Final Validation Loss: 0.4689
   Final Validation Accuracy: 82.52%
   Training Time: 973.78 seconds (approximately 16 minutes)
+
+
+  Feature names after preprocessing: ['num__popularity' 'num__danceability' 'num__energy' 'nu
+ 'num__loudness' 'num__mode' 'num__speechiness' 'num__acousticness'
+ 'num__instrumentalness' 'num__liveness' 'num__valence' 'num__tempo'
+ 'num__duration_ms' 'num__time_signature' 'cat__unified_genre_blues'
+ 'cat__unified_genre_classical' 'cat__unified_genre_country'
+ 'cat__unified_genre_electronic' 'cat__unified_genre_folk'
+ 'cat__unified_genre_funk_soul' 'cat__unified_genre_hip-hop'
+ 'cat__unified_genre_house' 'cat__unified_genre_jazz'
+ 'cat__unified_genre_latin' 'cat__unified_genre_metal'
+ 'cat__unified_genre_pop' 'cat__unified_genre_reggae'
+ 'cat__unified_genre_rock' 'cat__unified_genre_world']
