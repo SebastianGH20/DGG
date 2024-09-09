@@ -1,0 +1,25 @@
+Number of unique unified genres: 16
+
+List of unique unified genres:
+['other' 'world' 'rock' 'electronic' 'metal' 'blues' 'pop' 'classical'
+ 'country' 'reggae' 'house' 'folk' 'funk_soul' 'hip-hop' 'jazz' 'latin']
+
+Count of each unified genre:
+unified_genre
+other         284715
+electronic    176878
+rock           70484
+world          69923
+pop            69195
+metal          68039
+latin          51169
+reggae         37573
+house          33718
+classical      33338
+funk_soul      24110
+blues          19682
+country        17883
+folk           16170
+jazz           15943
+hip-hop        15703
+Name: count, dtype: int64

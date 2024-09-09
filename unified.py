@@ -24,42 +24,79 @@ tf.get_logger().setLevel('ERROR')
 
 def create_improved_genre_mapping():
     return {
-        'electronic': 'Electronic/Dance', 'edm': 'Electronic/Dance', 'electro': 'Electronic/Dance',
-        'dance': 'Electronic/Dance', 'club': 'Electronic/Dance', 'breakbeat': 'Electronic/Dance',
-        'drum-and-bass': 'Electronic/Dance', 'dubstep': 'Electronic/Dance', 'garage': 'Electronic/Dance',
-        'hardstyle': 'Electronic/Dance', 'house': 'Electronic/Dance', 'chicago-house': 'Electronic/Dance',
-        'deep-house': 'Electronic/Dance', 'progressive-house': 'Electronic/Dance',
-        'minimal-techno': 'Electronic/Dance', 'techno': 'Electronic/Dance',
-        'detroit-techno': 'Electronic/Dance', 'trance': 'Electronic/Dance',
-        'funk': 'Electronic/Dance', 'disco': 'Electronic/Dance',
-        'rock': 'Rock/Metal', 'alt-rock': 'Rock/Metal', 'hard-rock': 'Rock/Metal',
-        'metal': 'Rock/Metal', 'heavy-metal': 'Rock/Metal', 'black-metal': 'Rock/Metal',
-        'death-metal': 'Rock/Metal', 'metalcore': 'Rock/Metal', 'punk': 'Rock/Metal',
-        'punk-rock': 'Rock/Metal', 'emo': 'Rock/Metal', 'goth': 'Rock/Metal',
-        'grindcore': 'Rock/Metal', 'hardcore': 'Rock/Metal', 'industrial': 'Rock/Metal',
-        'pop': 'Pop/Mainstream', 'indie-pop': 'Pop/Mainstream', 'k-pop': 'Pop/Mainstream',
-        'power-pop': 'Pop/Mainstream', 'cantopop': 'Pop/Mainstream',
-        'hip-hop': 'Hip-Hop/R&B', 'trip-hop': 'Hip-Hop/R&B', 'soul': 'Hip-Hop/R&B',
-        'jazz': 'Traditional', 'blues': 'Traditional',
-        'classical': 'Traditional', 'opera': 'Traditional',
-        'folk': 'Country/Folk', 'acoustic': 'Country/Folk',
-        'singer-songwriter': 'Country/Folk', 'songwriter': 'Country/Folk',
-        'country': 'Country/Folk', 'rock-n-roll': 'Country/Folk',
-        'afrobeat': 'World Music', 'indian': 'World Music', 'spanish': 'World Music',
-        'french': 'World Music', 'german': 'World Music', 'swedish': 'World Music',
-        'forro': 'World Music', 'sertanejo': 'World Music',
-        'salsa': 'Latin', 'samba': 'Latin', 'tango': 'Latin',
-        'ambient': 'Ambient/Chill', 'chill': 'Ambient/Chill',
-        'dub': 'Reggae/Ska', 'dancehall': 'Reggae/Ska', 'ska': 'Reggae/Ska',
-        'piano': 'Instrumental', 'guitar': 'Instrumental',
-        'romance': 'Miscellaneous', 'sad': 'Miscellaneous', 'pop-film': 'Miscellaneous'
+        'ambient': 'Ambient/Chill',
+        'chill': 'Ambient/Chill',
+        'classical': 'Classical/Orchestral',
+        'opera': 'Classical/Orchestral',
+        'country': 'Country/Americana',
+        'rock-n-roll': 'Country/Americana',
+        'breakbeat': 'Electronic/Dance',
+        'club': 'Electronic/Dance',
+        'dance': 'Electronic/Dance',
+        'deep-house': 'Electronic/Dance',
+        'drum-and-bass': 'Electronic/Dance',
+        'dubstep': 'Electronic/Dance',
+        'edm': 'Electronic/Dance',
+        'electro': 'Electronic/Dance',
+        'electronic': 'Electronic/Dance',
+        'garage': 'Electronic/Dance',
+        'hardstyle': 'Electronic/Dance',
+        'house': 'Electronic/Dance',
+        'minimal-techno': 'Electronic/Dance',
+        'progressive-house': 'Electronic/Dance',
+        'techno': 'Electronic/Dance',
+        'trance': 'Electronic/Dance',
+        'acoustic': 'Folk/Acoustic',
+        'folk': 'Folk/Acoustic',
+        'singer-songwriter': 'Folk/Acoustic',
+        'disco': 'Funk/Disco',
+        'funk': 'Funk/Disco',
+        'hip-hop': 'Hip-Hop/R&B',
+        'soul': 'Hip-Hop/R&B',
+        'trip-hop': 'Hip-Hop/R&B',
+        'guitar': 'Instrumental',
+        'piano': 'Instrumental',
+        'blues': 'Jazz/Blues',
+        'jazz': 'Jazz/Blues',
+        'salsa': 'Latin',
+        'samba': 'Latin',
+        'tango': 'Latin',
+        'cantopop': 'Pop/Mainstream',
+        'indie-pop': 'Pop/Mainstream',
+        'k-pop': 'Pop/Mainstream',
+        'pop': 'Pop/Mainstream',
+        'power-pop': 'Pop/Mainstream',
+        'dancehall': 'Reggae/Ska',
+        'dub': 'Reggae/Ska',
+        'ska': 'Reggae/Ska',
+        'alt-rock': 'Rock/Metal',
+        'black-metal': 'Rock/Metal',
+        'death-metal': 'Rock/Metal',
+        'emo': 'Rock/Metal',
+        'goth': 'Rock/Metal',
+        'grindcore': 'Rock/Metal',
+        'hard-rock': 'Rock/Metal',
+        'hardcore': 'Rock/Metal',
+        'heavy-metal': 'Rock/Metal',
+        'industrial': 'Rock/Metal',
+        'metal': 'Rock/Metal',
+        'metalcore': 'Rock/Metal',
+        'psych-rock': 'Rock/Metal',
+        'punk': 'Rock/Metal',
+        'punk-rock': 'Rock/Metal',
+        'afrobeat': 'World Music',
+        'forro': 'World Music',
+        'french': 'World Music',
+        'german': 'World Music',
+        'indian': 'World Music',
+        'sertanejo': 'World Music',
+        'spanish': 'World Music',
+        'swedish': 'World Music'
     }
 
-def investigate_other_category(df):
-    other_genres = df[df['mapped_genre'] == 'Other']['genre'].value_counts()
-    logging.info("Top genres in 'Other' category:")
-    logging.info(other_genres.head(10))
-    return other_genres
+genre_mapping = create_improved_genre_mapping()
+
+
 
 def handle_imbalance(X, y):
     smote = SMOTE(random_state=42)
@@ -87,15 +124,11 @@ def create_model(input_shape, num_classes):
 
 def main():
     logging.info("Loading data...")
-    df = pd.read_csv('data/mapped_dataset.csv')
+    df = pd.read_csv('updated_mapped_dataset.csv')
     logging.info(f"Loaded {len(df)} rows of data.")
 
     logging.info("Applying improved genre mapping...")
-    genre_mapping = create_improved_genre_mapping()
     df['mapped_genre'] = df['genre'].map(genre_mapping).fillna('Other')
-
-    logging.info("Investigating 'Other' category...")
-    investigate_other_category(df)
 
     logging.info("New class distribution:")
     class_distribution = df['mapped_genre'].value_counts()
@@ -184,10 +217,11 @@ def main():
         print(classification_report(y_val_encoded, y_pred_classes, target_names=class_names))
 
         # Save the model and preprocessor
-        model.save('genre_classification_model.h5')
+        # Save the model using the `SavedModel` format
+        model.save('genre_classification_model.keras', save_format='h5')
         joblib.dump(preprocessor, 'preprocessor.pkl')
         joblib.dump(le, 'label_encoder.pkl')
-        logging.info("Model saved as 'genre_classification_model.h5'")
+        logging.info("Model saved as 'genre_classification_model.keras'")
         logging.info("Preprocessor saved as 'preprocessor.pkl'")
         logging.info("Label Encoder saved as 'label_encoder.pkl'")
         

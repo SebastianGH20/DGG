@@ -5,11 +5,14 @@ import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
 import time
 import numpy as np
+import pandas as pd
 from tensorflow.keras.models import load_model
 import joblib
 from collections import Counter
 import datetime
-import pandas as pd
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from imblearn.over_sampling import SMOTE
 
 # Set page config at the very beginning
 st.set_page_config(page_title="Spotify Music Explorer", page_icon="🎵", layout="wide")
@@ -24,87 +27,157 @@ client_credentials_manager = SpotifyClientCredentials(
 )
 sp = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
 
-# Load the trained model and scaler
-model = load_model('genre_classification_model.h5')
-scaler = joblib.load('scaler.pkl')
+# Load the trained model, preprocessor, and label encoder
+model = load_model('genre_classification_model.keras')
+preprocessor = joblib.load('preprocessor.pkl')
+le = joblib.load('label_encoder.pkl')
 
-# Add the genre mapping
-genre_mapping = {
-    'electronic': 'Electronic/Dance',
-    'edm': 'Electronic/Dance',
-    'electro': 'Electronic/Dance',
-    'dance': 'Electronic/Dance',
-    'club': 'Electronic/Dance',
-    'breakbeat': 'Electronic/Dance',
-    'drum-and-bass': 'Electronic/Dance',
-    'dubstep': 'Electronic/Dance',
-    'garage': 'Electronic/Dance',
-    'hardstyle': 'Electronic/Dance',
-    'house': 'Electronic/Dance',
-    'chicago-house': 'Electronic/Dance',
-    'deep-house': 'Electronic/Dance',
-    'progressive-house': 'Electronic/Dance',
-    'minimal-techno': 'Electronic/Dance',
-    'techno': 'Electronic/Dance',
-    'detroit-techno': 'Electronic/Dance',
-    'trance': 'Electronic/Dance',
-    'funk': 'Electronic/Dance',
-    'disco': 'Electronic/Dance',
-    'rock': 'Rock/Metal',
-    'alt-rock': 'Rock/Metal',
-    'hard-rock': 'Rock/Metal',
-    'metal': 'Rock/Metal',
-    'heavy-metal': 'Rock/Metal',
-    'black-metal': 'Rock/Metal',
-    'death-metal': 'Rock/Metal',
-    'metalcore': 'Rock/Metal',
-    'punk': 'Rock/Metal',
-    'punk-rock': 'Rock/Metal',
-    'emo': 'Rock/Metal',
-    'goth': 'Rock/Metal',
-    'grindcore': 'Rock/Metal',
-    'hardcore': 'Rock/Metal',
-    'industrial': 'Rock/Metal',
-    'pop': 'Pop/Mainstream',
-    'indie-pop': 'Pop/Mainstream',
-    'k-pop': 'Pop/Mainstream',
-    'power-pop': 'Pop/Mainstream',
-    'cantopop': 'Pop/Mainstream',
-    'hip-hop': 'Hip-Hop/R&B',
-    'trip-hop': 'Hip-Hop/R&B',
-    'soul': 'Hip-Hop/R&B',
-    'jazz': 'Traditional',
-    'blues': 'Traditional',
-    'classical': 'Traditional',
-    'opera': 'Traditional',
-    'folk': 'Country/Folk',
-    'acoustic': 'Country/Folk',
-    'singer-songwriter': 'Country/Folk',
-    'songwriter': 'Country/Folk',
-    'country': 'Country/Folk',
-    'rock-n-roll': 'Country/Folk',
-    'afrobeat': 'World Music',
-    'indian': 'World Music',
-    'spanish': 'World Music',
-    'french': 'World Music',
-    'german': 'World Music',
-    'swedish': 'World Music',
-    'forro': 'World Music',
-    'sertanejo': 'World Music',
-    'salsa': 'Latin',
-    'samba': 'Latin',
-    'tango': 'Latin',
-    'ambient': 'Ambient/Chill',
-    'chill': 'Ambient/Chill',
-    'dub': 'Reggae/Ska',
-    'dancehall': 'Reggae/Ska',
-    'ska': 'Reggae/Ska',
-    'piano': 'Instrumental',
-    'guitar': 'Instrumental',
-    'romance': 'Miscellaneous',
-    'sad': 'Miscellaneous',
-    'pop-film': 'Miscellaneous'
+def create_improved_genre_mapping():
+    return {
+        'ambient': 'Ambient/Chill',
+        'chill': 'Ambient/Chill',
+        'classical': 'Classical/Orchestral',
+        'opera': 'Classical/Orchestral',
+        'country': 'Country/Americana',
+        'rock-n-roll': 'Country/Americana',
+        'breakbeat': 'Electronic/Dance',
+        'club': 'Electronic/Dance',
+        'dance': 'Electronic/Dance',
+        'deep-house': 'Electronic/Dance',
+        'drum-and-bass': 'Electronic/Dance',
+        'dubstep': 'Electronic/Dance',
+        'edm': 'Electronic/Dance',
+        'electro': 'Electronic/Dance',
+        'electronic': 'Electronic/Dance',
+        'garage': 'Electronic/Dance',
+        'hardstyle': 'Electronic/Dance',
+        'house': 'Electronic/Dance',
+        'minimal-techno': 'Electronic/Dance',
+        'progressive-house': 'Electronic/Dance',
+        'techno': 'Electronic/Dance',
+        'trance': 'Electronic/Dance',
+        'acoustic': 'Folk/Acoustic',
+        'folk': 'Folk/Acoustic',
+        'singer-songwriter': 'Folk/Acoustic',
+        'disco': 'Funk/Disco',
+        'funk': 'Funk/Disco',
+        'hip-hop': 'Hip-Hop/R&B',
+        'soul': 'Hip-Hop/R&B',
+        'trip-hop': 'Hip-Hop/R&B',
+        'guitar': 'Instrumental',
+        'piano': 'Instrumental',
+        'blues': 'Jazz/Blues',
+        'jazz': 'Jazz/Blues',
+        'salsa': 'Latin',
+        'samba': 'Latin',
+        'tango': 'Latin',
+        'cantopop': 'Pop/Mainstream',
+        'indie-pop': 'Pop/Mainstream',
+        'k-pop': 'Pop/Mainstream',
+        'pop': 'Pop/Mainstream',
+        'power-pop': 'Pop/Mainstream',
+        'dancehall': 'Reggae/Ska',
+        'dub': 'Reggae/Ska',
+        'ska': 'Reggae/Ska',
+        'alt-rock': 'Rock/Metal',
+        'black-metal': 'Rock/Metal',
+        'death-metal': 'Rock/Metal',
+        'emo': 'Rock/Metal',
+        'goth': 'Rock/Metal',
+        'grindcore': 'Rock/Metal',
+        'hard-rock': 'Rock/Metal',
+        'hardcore': 'Rock/Metal',
+        'heavy-metal': 'Rock/Metal',
+        'industrial': 'Rock/Metal',
+        'metal': 'Rock/Metal',
+        'metalcore': 'Rock/Metal',
+        'psych-rock': 'Rock/Metal',
+        'punk': 'Rock/Metal',
+        'punk-rock': 'Rock/Metal',
+        'afrobeat': 'World Music',
+        'forro': 'World Music',
+        'french': 'World Music',
+        'german': 'World Music',
+        'indian': 'World Music',
+        'sertanejo': 'World Music',
+        'spanish': 'World Music',
+        'swedish': 'World Music'
+    }
+
+genre_mapping = create_improved_genre_mapping()
+
+genre_unified_mapping = {
+    'ambient': 'electronic',
+    'chill': 'electronic',
+    'classical': 'classical',
+    'opera': 'classical',
+    'country': 'country',
+    'rock-n-roll': 'rock',
+    'breakbeat': 'electronic',
+    'club': 'electronic',
+    'dance': 'electronic',
+    'deep-house': 'house',
+    'drum-and-bass': 'electronic',
+    'dubstep': 'electronic',
+    'edm': 'electronic',
+    'electro': 'electronic',
+    'electronic': 'electronic',
+    'garage': 'electronic',
+    'hardstyle': 'electronic',
+    'house': 'house',
+    'minimal-techno': 'electronic',
+    'progressive-house': 'house',
+    'techno': 'electronic',
+    'trance': 'electronic',
+    'acoustic': 'folk',
+    'folk': 'folk',
+    'singer-songwriter': 'folk',
+    'disco': 'funk_soul',
+    'funk': 'funk_soul',
+    'hip-hop': 'hip-hop',
+    'soul': 'funk_soul',
+    'trip-hop': 'hip-hop',
+    'guitar': 'rock',
+    'piano': 'classical',
+    'blues': 'blues',
+    'jazz': 'jazz',
+    'salsa': 'latin',
+    'samba': 'latin',
+    'tango': 'latin',
+    'cantopop': 'pop',
+    'indie-pop': 'pop',
+    'k-pop': 'pop',
+    'pop': 'pop',
+    'power-pop': 'pop',
+    'dancehall': 'reggae',
+    'dub': 'reggae',
+    'ska': 'reggae',
+    'alt-rock': 'rock',
+    'black-metal': 'metal',
+    'death-metal': 'metal',
+    'emo': 'rock',
+    'goth': 'rock',
+    'grindcore': 'metal',
+    'hard-rock': 'rock',
+    'hardcore': 'metal',
+    'heavy-metal': 'metal',
+    'industrial': 'metal',
+    'metal': 'metal',
+    'metalcore': 'metal',
+    'psych-rock': 'rock',
+    'punk': 'rock',
+    'punk-rock': 'rock',
+    'afrobeat': 'world',
+    'forro': 'world',
+    'french': 'world',
+    'german': 'world',
+    'indian': 'world',
+    'sertanejo': 'world',
+    'spanish': 'world',
+    'swedish': 'world'
 }
+
+
 
 # Custom CSS for styling
 st.markdown("""
@@ -139,6 +212,29 @@ st.markdown("""
     }
 </style>
 """, unsafe_allow_html=True)
+
+def prepare_data(df):
+    X = df.drop(['genre', 'mapped_genre'], axis=1)
+    y = df['mapped_genre']
+
+    numeric_features = X.select_dtypes(include=['int64', 'float64']).columns
+    categorical_features = X.select_dtypes(include=['object']).columns
+
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ('num', StandardScaler(), numeric_features),
+            ('cat', OneHotEncoder(handle_unknown='ignore'), categorical_features)
+        ])
+
+    X_preprocessed = preprocessor.fit_transform(X)
+    y_encoded = le.fit_transform(y)
+
+    return X_preprocessed, y_encoded, preprocessor, le
+
+def handle_imbalance(X, y):
+    smote = SMOTE(random_state=42)
+    X_resampled, y_resampled = smote.fit_resample(X, y)
+    return X_resampled, y_resampled
 
 def typewriter_text(text, speed=0.05):
     container = st.empty()
@@ -244,7 +340,6 @@ def predict_genre(features):
     feature_values = []
     for name in feature_names:
         if name == 'duration_ms':
-            # Convert duration from "minutes:seconds" to milliseconds
             minutes, seconds = map(int, features.get('duration', (0, ''))[0].split(':'))
             value = (minutes * 60 + seconds) * 1000
         else:
@@ -259,22 +354,21 @@ def predict_genre(features):
                 value = 0
         feature_values.append(value)
     
-    # Convert to DataFrame
     X = pd.DataFrame([feature_values], columns=feature_names)
     
     # Add a dummy 'unified_genre' column
     X['unified_genre'] = 'unknown'
     
-    # Apply the ColumnTransformer (scaler)
-    X_transformed = scaler.transform(X)
+    # Apply the preprocessor
+    X_preprocessed = preprocessor.transform(X)
     
-    prediction_probs = model.predict(X_transformed)[0]
+    prediction_probs = model.predict(X_preprocessed)[0]
     
-    # Get unique mapped genres (values in genre_mapping)
-    unique_mapped_genres = list(set(genre_mapping.values()))
+    # Get unique genres from label encoder
+    unique_genres = le.classes_
     
     # Sort predictions by probability
-    sorted_predictions = sorted(zip(unique_mapped_genres, prediction_probs), key=lambda x: x[1], reverse=True)
+    sorted_predictions = sorted(zip(unique_genres, prediction_probs), key=lambda x: x[1], reverse=True)
     
     # Get top 3 predictions
     top_predictions = sorted_predictions[:3]
@@ -290,7 +384,7 @@ def predict_genre(features):
         if mapped_genre == predicted_category:
             return subgenre, predicted_category, top_predictions
     
-    return "Unknown", "Unknown", top_predictions
+    return predicted_category, predicted_category, top_predictions
 
 def get_decade(release_date):
     try:
