@@ -126,7 +126,7 @@ Training Metrics  rmsprop
   Training Time: 973.78 seconds (approximately 16 minutes)
 
 
-  Feature names after preprocessing: ['num__popularity' 'num__danceability' 'num__energy' 'nu
+Feature names after preprocessing: ['num__popularity' 'num__danceability' 'num__energy' 'nu
  'num__loudness' 'num__mode' 'num__speechiness' 'num__acousticness'
  'num__instrumentalness' 'num__liveness' 'num__valence' 'num__tempo'
  'num__duration_ms' 'num__time_signature' 'cat__unified_genre_blues'
