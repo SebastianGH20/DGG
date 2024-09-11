@@ -149,7 +149,7 @@ def create_model(input_shape, num_classes):
 
 def main():
     logging.info("Loading data...")
-    df = pd.read_csv('updated_mapped_dataset.csv')
+    df = pd.read_csv('data\spotify_adapted.csv')
     
     logging.info("Preprocessing data...")
     X, y, preprocessor, le = preprocess_data(df)
@@ -162,9 +162,7 @@ def main():
     X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.5, stratify=y_temp, random_state=42)
 
     logging.info("Training and evaluating model...")
-    
-    print(X_train)
-    print(X_temp)
+
 
     try:
         class_names = le.classes_
