@@ -32,39 +32,128 @@ preprocessor = joblib.load('preprocessor.pkl')
 le = joblib.load('label_encoder.pkl')
 scaler = joblib.load('scaler.pkl')
 
-# Custom CSS for styling (same as in the second file)
 st.markdown("""
 <style>
+    /* Fondo general con gradiente basado en la nueva paleta */
+    .main {
+        background: linear-gradient(135deg, #000000, #2B2B2B);
+        color: white;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    
+    /* Cambia el color del texto de los títulos y párrafos a blanco */
+    h1, h2, p {
+        color: white;
+    }
+
+    /* Específicamente el texto "Spotify Music Explorer" y "Enter a track name:" */
+    .title-text {
+        color: white !important;
+    }
+
+    /* Texto de entrada */
+    .stTextInput > div > div > input {
+        background: transparent;
+        border: 2px solid #0466C8;
+        padding: 10px;
+        color: white;
+        font-size: 18px;
+        border-radius: 10px;
+        transition: border-color 0.3s;
+    }
+    
+    /* Cambia color del borde en hover */
+    .stTextInput > div > div > input:hover {
+        border-color: #FFFFFF;
+    }
+
+    /* Texto del typewriter */
     .typewriter-text {
         overflow: hidden;
         white-space: nowrap;
-        margin: 0;
+        margin: 20px 0;
+        font-size: 20px;
+        color: #FFFFFF;
         letter-spacing: .15em;
-        animation: typing 3.5s steps(40, end);
+        animation: typing 3.5s steps(40, end), blink-caret .75s step-end infinite;
     }
+
     @keyframes typing {
         from { width: 0 }
         to { width: 100% }
     }
-    .stTextInput > div > div > input {
-        caret-color: transparent;
-        background: transparent;
-        border: none;
-        outline: none;
-        color: inherit;
+    
+    @keyframes blink-caret {
+        from, to { border-color: transparent }
+        50% { border-color: white; }
     }
-    .stAudio > div > div {
-        background-color: #1DB954 !important;
+
+    /* Diseño para los resultados de búsqueda */
+    .result-card {
+        padding: 15px;
+        background: rgba(255, 255, 255, 0.1);
+        margin-bottom: 10px;
+        border-radius: 10px;
+        transition: background 0.3s ease, transform 0.2s ease;
+        cursor: pointer;
     }
-    .info-text {
-        font-size: 14px;
+
+    .result-card:hover {
+        background: rgba(255, 255, 255, 0.2);
+        transform: scale(1.02);
+    }
+
+    /* Texto de los resultados */
+    .result-card h3 {
+        font-size: 24px;
+        margin-bottom: 5px;
+        color: #0466C8;
+    }
+
+    .result-card p {
+        margin: 0;
+        font-size: 16px;
+        color: #FFFFFF;
+    }
+
+    /* Estilo de la información de la canción seleccionada */
+    .song-details {
+        background: rgba(0, 0, 0, 0.6);
+        padding: 20px;
+        border-radius: 10px;
+        margin-top: 20px;
+    }
+
+    .song-details h2 {
+        font-size: 30px;
+        color: #0466C8;
+        margin-bottom: 10px;
+    }
+
+    .song-details p {
+        font-size: 18px;
+        color: white;
         margin-bottom: 5px;
     }
-    .artist-photo {
-        border-radius: 50%;
+
+    /* Estilo de botones */
+    .stButton > button {
+        background-color: #0466C8;
+        color: white;
+        border-radius: 10px;
+        padding: 10px 20px;
+        border: none;
+        transition: background-color 0.3s ease;
     }
+
+    .stButton > button:hover {
+        background-color: #0353A4;
+    }
+
 </style>
 """, unsafe_allow_html=True)
+
+
 
 # Helper functions (combining from both files)
 
