@@ -16,7 +16,7 @@ import numpy as np
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Data Loading
-df = pd.read_csv('updated_mapped_dataset.csv')
+df = pd.read_csv('data\spotify_adapted.csv')
 
 def create_improved_genre_mapping():
     return {

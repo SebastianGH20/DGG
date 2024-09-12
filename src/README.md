@@ -5,7 +5,7 @@
 This project implements a deep learning model to classify and predict music genres based on various audio features extracted from Spotify data. It includes a web application for exploring music tracks, their features, and predicted genres.
 
 ## Team Members
-- Sebastian Gonzalez 
+- Sebastián González 
 - Pablo García del Moral
 
 ## Features
