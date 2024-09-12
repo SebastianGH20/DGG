@@ -210,7 +210,7 @@ def main():
         print(classification_report(y_test, y_test_pred_classes, target_names=class_names))
 
         # Save the model and preprocessor
-        model.save('genre_classification_model.keras', save_format='h5')
+        model.save('genre_classification_model.h5', save_format='h5')
         joblib.dump(preprocessor, 'preprocessor.pkl')
         joblib.dump(le, 'label_encoder.pkl')
         logging.info("Model saved as 'genre_classification_model.keras'")
