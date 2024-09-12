@@ -27,10 +27,10 @@ client_credentials_manager = SpotifyClientCredentials(
 sp = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
 
 # Load the trained model, preprocessor, and label encoder
-model = load_model('src/genre_classification_model.h5')
-preprocessor = joblib.load('src/preprocessor.pkl')
-le = joblib.load('src/label_encoder.pkl')
-scaler = joblib.load('src/scaler.pkl')
+model = load_model('genre_classification_model.h5')
+preprocessor = joblib.load('preprocessor.pkl')
+le = joblib.load('label_encoder.pkl')
+scaler = joblib.load('scaler.pkl')
 
 # Custom CSS for styling (same as in the second file)
 st.markdown("""
