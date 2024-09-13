@@ -125,7 +125,7 @@ st.markdown("""
     }
 
     .song-details h2 {
-        font-size: 30px;
+        font-size: 34px;
         color: #FF0000;
         margin-bottom: 10px;
     }
@@ -437,8 +437,8 @@ def predict_genre(track_id):
         return predicted_genre, predicted_genre, top_predictions
     
     except Exception as e:
-        st.error(f"Error making predictions: {str(e)}")
-        print(f"Error in predict_genre: {str(e)}")  # Debug print
+        st.write(f"Genre outside limits of data: {str(e)}")
+        # print(f"Error in predict_genre: {str(e)}")  # Debug print
         return "Error", "Error", []
 
 
@@ -582,7 +582,7 @@ def main():
                     predicted_genre, predicted_category, top_predictions = predict_genre(track['id'])
 
                     st.write(f"**Classified Genre (Our Model):** {predicted_category}")
-                    st.write("Top 3 predictions:")
+                    st.write("Top 3 classifications:")
                     for genre, prob in top_predictions:
                         st.write(f"- {genre}: {prob:.2%}")
                 
