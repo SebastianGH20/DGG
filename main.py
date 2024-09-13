@@ -166,7 +166,7 @@ def create_improved_genre_mapping():
         'classical': 'Classical/Orchestral',
         'opera': 'Classical/Orchestral',
         'country': 'Country/Americana',
-        'rock-n-roll': 'Country/Americana',
+        'rock': 'Country/Americana',
         'breakbeat': 'Electronic/Dance',
         'club': 'Electronic/Dance',
         'dance': 'Electronic/Dance',
@@ -206,7 +206,7 @@ def create_improved_genre_mapping():
         'dancehall': 'Reggae/Ska',
         'dub': 'Reggae/Ska',
         'ska': 'Reggae/Ska',
-        'alt-rock': 'Rock/Metal',
+        'alt': 'Rock/Metal',
         'black-metal': 'Rock/Metal',
         'death-metal': 'Rock/Metal',
         'emo': 'Rock/Metal',
@@ -218,7 +218,7 @@ def create_improved_genre_mapping():
         'industrial': 'Rock/Metal',
         'metal': 'Rock/Metal',
         'metalcore': 'Rock/Metal',
-        'psych-rock': 'Rock/Metal',
+        'psych': 'Rock/Metal',
         'punk': 'Rock/Metal',
         'punk-rock': 'Rock/Metal',
         'afrobeat': 'World Music',
@@ -573,7 +573,7 @@ def main():
             if artist_info:
                 api_genres = artist_info.get('genres', [])
                 st.write(f"Genres: {', '.join(api_genres)}")
-                st.write(f"🎉 Popularity: {artist_info['popularity']}/100")
+                # st.write(f"🎉 Popularity: {artist_info['popularity']}/100")
 
                 if track_features is not None:
 
