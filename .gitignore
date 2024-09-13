@@ -13,6 +13,7 @@ models/
 models/*.npy
 data/
 .env
+x.md
 
 
 keras_tuner/
