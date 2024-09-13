@@ -54,7 +54,7 @@ st.markdown("""
     /* Texto de entrada */
     .stTextInput > div > div > input {
         background: transparent;
-        border: 2px solid #0466C8;
+        border: 2px solid #FF0000;
         padding: 10px;
         color: white;
         font-size: 18px;
@@ -107,7 +107,7 @@ st.markdown("""
     .result-card h3 {
         font-size: 24px;
         margin-bottom: 5px;
-        color: #0466C8;
+        color: #FF0000;
     }
 
     .result-card p {
@@ -126,7 +126,7 @@ st.markdown("""
 
     .song-details h2 {
         font-size: 30px;
-        color: #0466C8;
+        color: #FF0000;
         margin-bottom: 10px;
     }
 
@@ -138,7 +138,7 @@ st.markdown("""
 
     /* Estilo de botones */
     .stButton > button {
-        background-color: #0466C8;
+        background-color: #FF0000;
         color: white;
         border-radius: 10px;
         padding: 10px 20px;
@@ -147,7 +147,9 @@ st.markdown("""
     }
 
     .stButton > button:hover {
-        background-color: #0353A4;
+        background-color: #FF0000; /* Keep the red background on hover */
+        color: white !important; /* Ensure text remains white on hover */
+        border: 2px solid white; /* Add a white border for contrast */
     }
 
 </style>
@@ -497,6 +499,11 @@ def get_similar_genres(artist_id):
     all_genres = [genre for artist in related_artists for genre in artist['genres']]
     return list(set(all_genres))[:5]  # Return up to 5 unique genres
 
+def display_info_without_unified_genre(info):
+    filtered_info = {k: v for k, v in info.items() if k != 'unified_genre'}
+    for key, value in filtered_info.items():
+        st.markdown(f'<p class="info-text">{key.capitalize()}: {value}</p>', unsafe_allow_html=True)
+
 def main():
     st.title("Spotify Music Explorer")
 
@@ -569,29 +576,30 @@ def main():
                 st.write(f"🎉 Popularity: {artist_info['popularity']}/100")
 
                 if track_features is not None:
-                    display_info(track_features.iloc[0].to_dict())
+
+                    display_info_without_unified_genre(track_features.iloc[0].to_dict())
                     
                     predicted_genre, predicted_category, top_predictions = predict_genre(track['id'])
 
-                    st.write(f"**Predicted Genre (Our Model):** {predicted_category}")
+                    st.write(f"**Classified Genre (Our Model):** {predicted_category}")
                     st.write("Top 3 predictions:")
                     for genre, prob in top_predictions:
                         st.write(f"- {genre}: {prob:.2%}")
                 
                 if api_genres:
                     final_genre = api_genres[0] if predicted_genre.lower() not in [g.lower() for g in api_genres] else predicted_genre
-                    st.write(f"**Final Genre Prediction:** {final_genre.capitalize()}")
+                    st.write(f"**Final Genre Classification:** {final_genre.capitalize()}")
                     
                     similar_genres = get_similar_genres(track['artists'][0]['id'])
                     st.markdown("**Similar Genres:**")
                     for genre in similar_genres:
-                        st.markdown(f"<font color='blue'>{genre.capitalize()}</font>", unsafe_allow_html=True)
+                        st.markdown(f"<font color='white'>{genre.capitalize()}</font>", unsafe_allow_html=True)
                     
                     release_date = track['album']['release_date']
                     decade = get_decade(release_date)
                     st.write(f"**Decade:** {decade}")
                 else:
-                    st.write(f"**Final Genre Prediction:** {predicted_genre.capitalize()}")
+                    st.write(f"**Final Genre Classification:** {predicted_genre.capitalize()}")
         
         with st.expander("Collaborations"):
             current_collaborations = get_track_collaborations(track['artists'])

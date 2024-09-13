@@ -320,36 +320,202 @@
 
 
 
-import pandas as pd
 import numpy as np
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics.pairwise import cosine_similarity
-from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.model_selection import train_test_split, cross_val_score, RandomizedSearchCV
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
-from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
-from sklearn.model_selection import RandomizedSearchCV
+from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor, VotingRegressor
+from xgboost import XGBRegressor
+from lightgbm import LGBMRegressor
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Dropout, BatchNormalization, Input
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.callbacks import EarlyStopping
 from tensorflow.keras.regularizers import l2
+from keras_tuner import RandomSearch
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 import seaborn as sns
 import joblib
+import pandas as pd
+import shap
 
-# ... (keep the genre_mapping dictionary as it was) ...
+def create_improved_genre_mapping():
+    return {
+        'ambient': 'Ambient/Chill',
+        'chill': 'Ambient/Chill',
+        'classical': 'Classical/Orchestral',
+        'opera': 'Classical/Orchestral',
+        'country': 'Country/Americana',
+        'rock-n-roll': 'Country/Americana',
+        'breakbeat': 'Electronic/Dance',
+        'club': 'Electronic/Dance',
+        'dance': 'Electronic/Dance',
+        'deep-house': 'Electronic/Dance',
+        'drum-and-bass': 'Electronic/Dance',
+        'dubstep': 'Electronic/Dance',
+        'edm': 'Electronic/Dance',
+        'electro': 'Electronic/Dance',
+        'electronic': 'Electronic/Dance',
+        'garage': 'Electronic/Dance',
+        'hardstyle': 'Electronic/Dance',
+        'house': 'Electronic/Dance',
+        'minimal-techno': 'Electronic/Dance',
+        'progressive-house': 'Electronic/Dance',
+        'techno': 'Electronic/Dance',
+        'trance': 'Electronic/Dance',
+        'acoustic': 'Folk/Acoustic',
+        'folk': 'Folk/Acoustic',
+        'singer-songwriter': 'Folk/Acoustic',
+        'disco': 'Funk/Disco',
+        'funk': 'Funk/Disco',
+        'hip-hop': 'Hip-Hop/R&B',
+        'soul': 'Hip-Hop/R&B',
+        'trip-hop': 'Hip-Hop/R&B',
+        'guitar': 'Instrumental',
+        'piano': 'Instrumental',
+        'blues': 'Jazz/Blues',
+        'jazz': 'Jazz/Blues',
+        'salsa': 'Latin',
+        'samba': 'Latin',
+        'tango': 'Latin',
+        'cantopop': 'Pop/Mainstream',
+        'indie-pop': 'Pop/Mainstream',
+        'k-pop': 'Pop/Mainstream',
+        'pop': 'Pop/Mainstream',
+        'power-pop': 'Pop/Mainstream',
+        'dancehall': 'Reggae/Ska',
+        'dub': 'Reggae/Ska',
+        'ska': 'Reggae/Ska',
+        'alt-rock': 'Rock/Metal',
+        'black-metal': 'Rock/Metal',
+        'death-metal': 'Rock/Metal',
+        'emo': 'Rock/Metal',
+        'goth': 'Rock/Metal',
+        'grindcore': 'Rock/Metal',
+        'hard-rock': 'Rock/Metal',
+        'hardcore': 'Rock/Metal',
+        'heavy-metal': 'Rock/Metal',
+        'industrial': 'Rock/Metal',
+        'metal': 'Rock/Metal',
+        'metalcore': 'Rock/Metal',
+        'psych-rock': 'Rock/Metal',
+        'punk': 'Rock/Metal',
+        'punk-rock': 'Rock/Metal',
+        'afrobeat': 'World Music',
+        'forro': 'World Music',
+        'french': 'World Music',
+        'german': 'World Music',
+        'indian': 'World Music',
+        'sertanejo': 'World Music',
+        'spanish': 'World Music',
+        'swedish': 'World Music'
+    }
+
+genre_mapping = create_improved_genre_mapping()
+
+def create_unified_genre_mapping():
+    return {
+        'ambient': 'electronic',
+        'chill': 'electronic',
+        'classical': 'classical',
+        'opera': 'classical',
+        'country': 'country',
+        'rock': 'rock',
+        'breakbeat': 'electronic',
+        'club': 'electronic',
+        'dance': 'electronic',
+        'deep-house': 'house',
+        'drum-and-bass': 'electronic',
+        'dubstep': 'electronic',
+        'edm': 'electronic',
+        'electro': 'electronic',
+        'electronic': 'electronic',
+        'garage': 'electronic',
+        'hardstyle': 'electronic',
+        'house': 'house',
+        'minimal-techno': 'electronic',
+        'progressive-house': 'house',
+        'techno': 'electronic',
+        'trance': 'electronic',
+        'acoustic': 'folk',
+        'folk': 'folk',
+        'singer-songwriter': 'folk',
+        'disco': 'funk_soul',
+        'funk': 'funk_soul',
+        'hip-hop': 'hip-hop',
+        'soul': 'funk_soul',
+        'trip-hop': 'hip-hop',
+        'guitar': 'rock',
+        'piano': 'classical',
+        'blues': 'blues',
+        'jazz': 'jazz',
+        'salsa': 'latin',
+        'samba': 'latin',
+        'tango': 'latin',
+        'cantopop': 'pop',
+        'indie-pop': 'pop',
+        'k-pop': 'pop',
+        'pop': 'pop',
+        'power-pop': 'pop',
+        'dancehall': 'reggae',
+        'dub': 'reggae',
+        'ska': 'reggae',
+        'alt-rock': 'rock',
+        'black-metal': 'metal',
+        'death-metal': 'metal',
+        'emo': 'rock',
+        'goth': 'rock',
+        'grindcore': 'metal',
+        'hard-rock': 'rock',
+        'hardcore': 'metal',
+        'heavy-metal': 'metal',
+        'industrial': 'metal',
+        'metal': 'metal',
+        'metalcore': 'metal',
+        'psych-rock': 'rock',
+        'punk': 'rock',
+        'punk-rock': 'rock',
+        'afrobeat': 'world',
+        'forro': 'world',
+        'french': 'world',
+        'german': 'world',
+        'indian': 'world',
+        'sertanejo': 'world',
+        'spanish': 'world',
+        'swedish': 'world'
+    }
+
+unified_genre_mapping = create_unified_genre_mapping()
 
 def load_and_preprocess_data(csv_file):
     print("Loading and preprocessing data...")
     df = pd.read_csv(csv_file)
     
+    print("Columns in the DataFrame:")
+    print(df.columns)
+    print("\nFirst few rows of the DataFrame:")
+    print(df.head())
+    
+    if 'unified_genre' not in df.columns:
+        raise KeyError("'unified_genre' column not found in the DataFrame.")
+    
     # Map genres
     df['mapped_genre'] = df['unified_genre'].map(lambda x: genre_mapping.get(x.lower(), x) if isinstance(x, str) else x)
+    
+    print("\nUnique values in 'unified_genre':")
+    print(df['unified_genre'].unique())
+    print("\nUnique values in 'mapped_genre':")
+    print(df['mapped_genre'].unique())
     
     features = ['danceability', 'energy', 'key', 'loudness', 'mode', 'speechiness', 
                 'acousticness', 'instrumentalness', 'liveness', 'valence', 'tempo', 
                 'duration_ms', 'time_signature', 'popularity']
+    
+    missing_features = [f for f in features if f not in df.columns]
+    if missing_features:
+        raise KeyError(f"Missing features: {missing_features}")
     
     # Feature engineering
     df['energy_danceability_ratio'] = df['energy'] / df['danceability']
@@ -357,13 +523,26 @@ def load_and_preprocess_data(csv_file):
     df['tempo_bin'] = pd.qcut(df['tempo'], q=5, labels=['very_slow', 'slow', 'medium', 'fast', 'very_fast'])
     df['popularity_bin'] = pd.qcut(df['popularity'], q=5, labels=['very_low', 'low', 'medium', 'high', 'very_high'])
     
-    # One-hot encode categorical features
-    df = pd.get_dummies(df, columns=['tempo_bin', 'popularity_bin', 'mapped_genre'])
+    # One-hot encode categorical features, excluding 'mapped_genre'
+    df = pd.get_dummies(df, columns=['tempo_bin', 'popularity_bin'])
+    
+    print("\nColumns after one-hot encoding:")
+    print(df.columns)
+    
+    print("\nChecking for 'mapped_genre' column:")
+    if 'mapped_genre' not in df.columns:
+        raise KeyError("'mapped_genre' column not found after one-hot encoding.")
     
     print("Calculating top 10% popular songs per mapped genre...")
-    top_10_percent = df.groupby('mapped_genre', group_keys=False).apply(
-        lambda x: x.nlargest(max(int(len(x) * 0.1), 1), 'popularity')
-    )
+    try:
+        top_10_percent = df.groupby('mapped_genre', group_keys=False).apply(
+            lambda x: x.nlargest(max(int(len(x) * 0.1), 1), 'popularity')
+        )
+    except KeyError as e:
+        print(f"Error in groupby operation: {str(e)}")
+        print("Current columns in DataFrame:")
+        print(df.columns)
+        raise
     
     print("Calculating mean features for top songs per mapped genre...")
     genre_means = top_10_percent.groupby('mapped_genre')[features].mean()
@@ -378,103 +557,219 @@ def load_and_preprocess_data(csv_file):
         axis=1
     )
     
-    X = df.drop(['basicness', 'unified_genre'], axis=1)
+    # Normalize basicness score
+    df['basicness'] = (df['basicness'] - df['basicness'].min()) / (df['basicness'].max() - df['basicness'].min())
+    
+    X = df.drop(['basicness', 'unified_genre', 'mapped_genre'], axis=1)
     y = df['basicness']
     
     return X, y, genre_means
 
+
+def data_augmentation(X, y, num_augmented=1000):
+    augmented_X = []
+    augmented_y = []
+    
+    for _ in range(num_augmented):
+        idx = np.random.randint(0, len(X))
+        x = X.iloc[idx].copy()
+        
+        # Add small random variations to numerical features
+        for col in X.select_dtypes(include=[np.number]).columns:
+            x[col] += np.random.normal(0, 0.1 * X[col].std())
+        
+        augmented_X.append(x)
+        augmented_y.append(y.iloc[idx])
+    
+    return pd.DataFrame(augmented_X), pd.Series(augmented_y)
+
+def build_nn_model(hp):
+    model = Sequential()
+    model.add(Input(shape=(hp.Int('input_dim', 32, 128, step=32),)))
+    
+    for i in range(hp.Int('num_layers', 1, 5)):
+        model.add(Dense(units=hp.Int(f'units_{i}', 32, 512, step=32),
+                        activation='relu',
+                        kernel_regularizer=l2(hp.Float(f'l2_{i}', 1e-5, 1e-2, sampling='LOG'))))
+        model.add(BatchNormalization())
+        model.add(Dropout(hp.Float(f'dropout_{i}', 0, 0.5, step=0.1)))
+    
+    model.add(Dense(1, activation='sigmoid'))
+    
+    model.compile(
+        optimizer=Adam(hp.Float('learning_rate', 1e-4, 1e-2, sampling='LOG')),
+        loss='mse',
+        metrics=['mae']
+    )
+    return model
+
 def train_and_evaluate_models(X, y):
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    
+    # Data Augmentation
+    X_train_aug, y_train_aug = data_augmentation(X_train, y_train)
+    X_train = pd.concat([X_train, X_train_aug])
+    y_train = pd.concat([y_train, y_train_aug])
     
     scaler = StandardScaler()
     X_train_scaled = scaler.fit_transform(X_train)
     X_test_scaled = scaler.transform(X_test)
     
-    # Random Forest
-    rf_model = RandomForestRegressor(n_estimators=100, random_state=42)
-    rf_model.fit(X_train, y_train)
-    rf_pred = rf_model.predict(X_test)
+    # Model definitions
+    rf_params = {
+        'n_estimators': [100, 200, 300],
+        'max_depth': [10, 20, 30, None],
+        'min_samples_split': [2, 5, 10],
+        'min_samples_leaf': [1, 2, 4]
+    }
+    rf_model = RandomizedSearchCV(RandomForestRegressor(random_state=42), rf_params, n_iter=20, cv=5, n_jobs=-1, random_state=42)
     
-    # Gradient Boosting
-    gb_model = GradientBoostingRegressor(n_estimators=100, random_state=42)
-    gb_model.fit(X_train, y_train)
-    gb_pred = gb_model.predict(X_test)
+    gb_params = {
+        'n_estimators': [100, 200, 300],
+        'learning_rate': [0.01, 0.1, 0.2],
+        'max_depth': [3, 4, 5],
+        'min_samples_split': [2, 5, 10],
+        'min_samples_leaf': [1, 2, 4]
+    }
+    gb_model = RandomizedSearchCV(GradientBoostingRegressor(random_state=42), gb_params, n_iter=20, cv=5, n_jobs=-1, random_state=42)
+    
+    xgb_params = {
+        'n_estimators': [100, 200, 300],
+        'learning_rate': [0.01, 0.1, 0.2],
+        'max_depth': [3, 4, 5],
+        'min_child_weight': [1, 5, 10],
+        'subsample': [0.7, 0.8, 0.9]
+    }
+    xgb_model = RandomizedSearchCV(XGBRegressor(random_state=42), xgb_params, n_iter=20, cv=5, n_jobs=-1, random_state=42)
+    
+    lgb_params = {
+        'n_estimators': [100, 200, 300],
+        'learning_rate': [0.01, 0.1, 0.2],
+        'max_depth': [3, 4, 5],
+        'num_leaves': [31, 63, 127],
+        'subsample': [0.7, 0.8, 0.9]
+    }
+    lgb_model = RandomizedSearchCV(LGBMRegressor(random_state=42), lgb_params, n_iter=20, cv=5, n_jobs=-1, random_state=42)
     
     # Neural Network
-    nn_model = build_nn_model(X_train_scaled.shape[1])
-    nn_model.fit(X_train_scaled, y_train, epochs=100, batch_size=32, 
-                 validation_split=0.2, callbacks=[EarlyStopping(patience=10)], verbose=0)
-    nn_pred = nn_model.predict(X_test_scaled).flatten()
+    tuner = RandomSearch(
+        build_nn_model,
+        objective='val_mae',
+        max_trials=20,
+        executions_per_trial=1,
+        directory='keras_tuner',
+        project_name='basicness_prediction'
+    )
     
-    # Evaluate models
+    # Train models
     models = {
-        'Random Forest': (rf_model, rf_pred),
-        'Gradient Boosting': (gb_model, gb_pred),
-        'Neural Network': (nn_model, nn_pred)
+        'Random Forest': rf_model,
+        'Gradient Boosting': gb_model,
+        'XGBoost': xgb_model,
+        'LightGBM': lgb_model
     }
     
-    for name, (model, pred) in models.items():
+    for name, model in models.items():
+        print(f"\nTraining {name}...")
+        model.fit(X_train, y_train)
+        
+        pred = model.predict(X_test)
         mae = mean_absolute_error(y_test, pred)
         mse = mean_squared_error(y_test, pred)
         r2 = r2_score(y_test, pred)
-        accuracy = np.mean(np.abs(pred - y_test) <= 0.1)
         
-        print(f"\n{name} Results:")
+        print(f"{name} Results:")
         print(f"Mean Absolute Error: {mae}")
         print(f"Mean Squared Error: {mse}")
         print(f"R-squared Score: {r2}")
-        print(f"Accuracy (within 10% of true value): {accuracy}")
         
         # Cross-validation
         cv_scores = cross_val_score(model, X, y, cv=5, scoring='neg_mean_absolute_error')
         print(f"Cross-validation MAE: {-cv_scores.mean()} (+/- {cv_scores.std() * 2})")
     
-    # Error analysis
-    best_model, best_pred = max(models.values(), key=lambda x: r2_score(y_test, x[1]))
-    errors = np.abs(best_pred - y_test)
-    worst_predictions = pd.DataFrame({'true': y_test, 'predicted': best_pred, 'error': errors})
+    print("\nTraining Neural Network...")
+    tuner.search(X_train_scaled, y_train, epochs=50, validation_split=0.2, callbacks=[EarlyStopping(patience=10)])
+    best_nn_model = tuner.get_best_models(num_models=1)[0]
+    best_nn_model.fit(X_train_scaled, y_train, epochs=100, validation_split=0.2, callbacks=[EarlyStopping(patience=10)], verbose=0)
+    nn_pred = best_nn_model.predict(X_test_scaled).flatten()
+    
+    nn_mae = mean_absolute_error(y_test, nn_pred)
+    nn_mse = mean_squared_error(y_test, nn_pred)
+    nn_r2 = r2_score(y_test, nn_pred)
+    
+    print("Neural Network Results:")
+    print(f"Mean Absolute Error: {nn_mae}")
+    print(f"Mean Squared Error: {nn_mse}")
+    print(f"R-squared Score: {nn_r2}")
+    
+    # Ensemble
+    print("\nCreating Ensemble Model...")
+    ensemble_model = VotingRegressor([
+        ('rf', models['Random Forest'].best_estimator_),
+        ('gb', models['Gradient Boosting'].best_estimator_),
+        ('xgb', models['XGBoost'].best_estimator_),
+        ('lgb', models['LightGBM'].best_estimator_)
+    ])
+    ensemble_model.fit(X_train, y_train)
+    ensemble_pred = ensemble_model.predict(X_test)
+    
+    ensemble_mae = mean_absolute_error(y_test, ensemble_pred)
+    ensemble_mse = mean_squared_error(y_test, ensemble_pred)
+    ensemble_r2 = r2_score(y_test, ensemble_pred)
+    
+    print("Ensemble Model Results:")
+    print(f"Mean Absolute Error: {ensemble_mae}")
+    print(f"Mean Squared Error: {ensemble_mse}")
+    print(f"R-squared Score: {ensemble_r2}")
+    
+    # Feature Importance
+    feature_importance = pd.DataFrame({'feature': X.columns, 'importance': ensemble_model.estimators_[0].feature_importances_})
+    feature_importance = feature_importance.sort_values('importance', ascending=False)
+    
+    plt.figure(figsize=(10, 6))
+    sns.barplot(x='importance', y='feature', data=feature_importance.head(20))
+    plt.title('Top 20 Feature Importances')
+    plt.tight_layout()
+    plt.savefig('feature_importance.png')
+    print("Feature importance plot saved as 'feature_importance.png'")
+    
+    # SHAP values for Neural Network
+    explainer = shap.DeepExplainer(best_nn_model, X_train_scaled[:100])
+    shap_values = explainer.shap_values(X_test_scaled[:100])
+    shap.summary_plot(shap_values[0], X_test[:100], plot_type="bar", show=False)
+    plt.savefig('shap_summary.png')
+    print("SHAP summary plot saved as 'shap_summary.png'")
+    
+    # Error Analysis
+    errors = np.abs(ensemble_pred - y_test)
+    worst_predictions = pd.DataFrame({'true': y_test, 'predicted': ensemble_pred, 'error': errors})
     worst_predictions = worst_predictions.sort_values('error', ascending=False).head(10)
     
     print("\nWorst Predictions:")
     print(worst_predictions)
     
-    # Feature importance
-    if hasattr(best_model, 'feature_importances_'):
-        feature_importance = pd.DataFrame({'feature': X.columns, 'importance': best_model.feature_importances_})
-        feature_importance = feature_importance.sort_values('importance', ascending=False)
-        
-        plt.figure(figsize=(10, 6))
-        sns.barplot(x='importance', y='feature', data=feature_importance.head(20))
-        plt.title('Top 20 Feature Importances')
-        plt.tight_layout()
-        plt.savefig('feature_importance.png')
-        print("Feature importance plot saved as 'feature_importance.png'")
-    
-    return best_model, scaler
-
-def build_nn_model(input_shape):
-    model = Sequential([
-        Input(shape=(input_shape,)),
-        Dense(64, activation='relu', kernel_regularizer=l2(0.01)),
-        BatchNormalization(),
-        Dropout(0.3),
-        Dense(32, activation='relu', kernel_regularizer=l2(0.01)),
-        BatchNormalization(),
-        Dropout(0.3),
-        Dense(16, activation='relu', kernel_regularizer=l2(0.01)),
-        BatchNormalization(),
-        Dropout(0.3),
-        Dense(1, activation='sigmoid')
-    ])
-    model.compile(optimizer=Adam(learning_rate=0.001), loss='mse', metrics=['mae'])
-    return model
+    return ensemble_model, best_nn_model, scaler
 
 if __name__ == "__main__":
-    csv_file = r'data\mapped_dataset.csv'
-    X, y, genre_means = load_and_preprocess_data(csv_file)
-    best_model, scaler = train_and_evaluate_models(X, y)
-    
-    joblib.dump(best_model, 'best_basicness_model.joblib')
-    joblib.dump(scaler, 'basicness_scaler.joblib')
-    genre_means.to_csv('genre_means.csv')
-    print("Best model, scaler, and genre means saved successfully.")
+    csv_file = r'data\spotify_adapted.csv'  # Replace with your actual CSV file path
+    try:
+        # Load and preprocess data
+        X, y, genre_means = load_and_preprocess_data(csv_file)
+        print("Data preprocessing completed successfully.")
+        print("Shape of X:", X.shape)
+        print("Shape of y:", y.shape)
+        print("Shape of genre_means:", genre_means.shape)
+
+        # Train models
+        ensemble_model, best_nn_model, scaler = train_and_evaluate_models(X, y)
+
+        # Save models, scaler, and genre means
+        print("\nSaving models, scaler, and genre means...")
+        best_nn_model.save('basicness_prediction_model.keras')
+        joblib.dump(scaler, 'basicness_scaler.joblib')
+        ensemble_model.save('ensemble_prediction_model.joblib')
+        genre_means.to_csv('genre_means.csv')
+        print("Models, scaler, and genre means saved successfully.")
+
+    except Exception as e:
+        print(f"An error occurred: {str(e)}")
